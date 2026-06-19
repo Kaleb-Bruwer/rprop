@@ -11,6 +11,10 @@ pub trait Process {
     fn run(self, input: Self::Requires) -> Self::Provides;
 }
 
+pub use crate::define_fact;
+pub use crate::take;
+pub use rose_architecture_macros::define_fact_set;
+
 #[macro_export]
 macro_rules! define_fact {
     (
@@ -33,49 +37,6 @@ macro_rules! define_fact {
                 Self { _private: () }
             }
         }
-    };
-}
-
-// We allow non_snake_case here to match the fact names
-#[macro_export]
-macro_rules! define_fact_set {
-    (
-        $(#[$doc:meta])+
-        $name:ident,
-        [$($fact:ident),* $(,)?]
-    ) => {
-        $(#[$doc])*
-        $crate::define_fact_set!(@body $name, $($fact),*);
-    };
-
-    (
-        $name:ident,
-        [$($fact:ident),* $(,)?]
-    ) => {
-        $crate::define_fact_set!(@body $name, $($fact),*);
-    };
-
-    (@body $name:ident, $($fact:ident),* $(,)?) => {
-        #[allow(non_snake_case)]
-        pub struct $name {
-            $( pub $fact: $fact, )*
-        }
-
-        impl $name {
-            pub fn new($($fact: $fact),*) -> Self {
-                Self {
-                    $($fact),*
-                }
-            }
-        }
-
-        $(
-            impl $crate::framework::HasFact<$fact> for $name {
-                fn fact(&self) -> $fact {
-                    self.$fact
-                }
-            }
-        )*
     };
 }
 

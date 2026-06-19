@@ -1,10 +1,9 @@
 use crate::{
-    define_fact_set, take,
     facts::{
         DefFieldOrder, DefPureSignatures, DefSingleExit, DefValidSourceProgram, FieldOrder,
         PureSignatures, SingleExit, ValidSourceProgram,
     },
-    framework::Process,
+    framework::{define_fact_set, take, Process},
 };
 
 pub struct GetAST;

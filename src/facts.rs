@@ -1,4 +1,4 @@
-use crate::define_fact;
+use crate::framework::define_fact;
 
 define_fact!(
     /// The given program is well formed in its language
