@@ -1,17 +1,14 @@
 use crate::{
-    facts::{
-        DefFieldOrder, DefPureSignatures, DefSingleExit, DefValidSourceProgram, FieldOrder,
-        PureSignatures, SingleExit, ValidSourceProgram,
-    },
-    framework::{define_fact_set, take, Process},
+    facts::{FieldOrder, PureSignatures, SingleExit, ValidSourceProgram},
+    framework::{Process, ProveFact, define_fact_set, take},
 };
 
 pub struct GetAST;
 
 define_fact_set!(SourceAST, [ValidSourceProgram, FieldOrder]);
 
-impl DefValidSourceProgram for GetAST {}
-impl DefFieldOrder for GetAST {}
+impl ProveFact<ValidSourceProgram> for GetAST {}
+impl ProveFact<FieldOrder> for GetAST {}
 
 impl Process for GetAST {
     type Requires = ();
@@ -29,8 +26,8 @@ pub struct KirBuilder;
 
 define_fact_set!(Kir1, [SingleExit, PureSignatures, FieldOrder]);
 
-impl DefSingleExit for KirBuilder {}
-impl DefPureSignatures for KirBuilder {}
+impl ProveFact<SingleExit> for KirBuilder {}
+impl ProveFact<PureSignatures> for KirBuilder {}
 
 impl Process for KirBuilder {
     type Requires = SourceAST;

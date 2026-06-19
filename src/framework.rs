@@ -1,5 +1,7 @@
 pub trait Fact {}
 
+pub trait ProveFact<F: Fact> {}
+
 pub trait HasFact<F: Fact> {
     fn fact(&self) -> F;
 }
@@ -19,8 +21,7 @@ pub use rose_architecture_macros::define_fact_set;
 macro_rules! define_fact {
     (
         $(#[$doc:meta])*
-        $fact:ident,
-        $provider_trait:ident $(,)?
+        $fact:ident $(,)?
     ) => {
         $(#[$doc])*
         #[derive(Clone, Copy)]
@@ -30,10 +31,8 @@ macro_rules! define_fact {
 
         impl $crate::framework::Fact for $fact {}
 
-        pub(crate) trait $provider_trait {}
-
         impl $fact {
-            pub(crate) fn new<P: $provider_trait>(_provider: &P) -> Self {
+            pub(crate) fn new<P: $crate::framework::ProveFact<Self>>(_provider: &P) -> Self {
                 Self { _private: () }
             }
         }
