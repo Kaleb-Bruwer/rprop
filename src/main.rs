@@ -1,5 +1,5 @@
-mod framework;
 mod facts;
+mod framework;
 mod lowering;
 
 fn main() {

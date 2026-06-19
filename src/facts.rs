@@ -1,23 +1,37 @@
 use crate::define_fact;
 
-/// The given program is well formed in its language
-define_fact!(ValidSourceProgram, DefValidSourceProgram);
+define_fact!(
+    /// The given program is well formed in its language
+    ValidSourceProgram,
+    DefValidSourceProgram,
+);
 
-/// At every point in the program, we know which locations the source names are bound to
-pub struct LocNameBindings {
-    _private: (),
-}
+define_fact!(
+    /// If the language has a notion of field order, the order is provided
+    FieldOrder,
+    DefFieldOrder,
+);
 
-/// Every return only has a single exit point, no diverging execution paths
-pub struct SingleExit {
-    _private: (),
-}
+define_fact!(
+    /// At every point in the program, we know which locations the source names are bound to
+    LocNameBindings,
+    DefLocNameBindings,
+);
 
-/// All functions are pure; no side effects or external reads
-pub struct PureSignatures{
-    _private: (),
-}
+define_fact!(
+    /// Every return only has a single exit point, no diverging execution paths
+    SingleExit,
+    DefSingleExit,
+);
 
-pub struct NoDeadCode {
-    _private: (),
-}
+define_fact!(
+    /// All functions are pure; no side effects or external reads
+    PureSignatures,
+    DefPureSignatures,
+);
+
+define_fact!(
+    /// There is no dead code; every statement is executed
+    NoDeadCode,
+    DefNoDeadCode,
+);

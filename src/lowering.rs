@@ -1,15 +1,47 @@
-use crate::{facts::{DefValidSourceProgram, ValidSourceProgram}, framework::Process};
+use crate::{
+    define_fact_set, take,
+    facts::{
+        DefFieldOrder, DefPureSignatures, DefSingleExit, DefValidSourceProgram, FieldOrder,
+        PureSignatures, SingleExit, ValidSourceProgram,
+    },
+    framework::Process,
+};
 
-pub struct InputAST;
+pub struct GetAST;
 
-impl DefValidSourceProgram for InputAST {}
+define_fact_set!(SourceAST, [ValidSourceProgram, FieldOrder]);
 
-impl Process for InputAST {
+impl DefValidSourceProgram for GetAST {}
+impl DefFieldOrder for GetAST {}
+
+impl Process for GetAST {
     type Requires = ();
-    type Provides = ValidSourceProgram;
+    type Provides = SourceAST;
 
-    fn run(self, _input: ()) -> ValidSourceProgram {
-        ValidSourceProgram::new::<Self>(&self)
+    fn run(self, _input: ()) -> SourceAST {
+        SourceAST::new(
+            ValidSourceProgram::new::<Self>(&self),
+            FieldOrder::new::<Self>(&self),
+        )
     }
 }
 
+pub struct KirBuilder;
+
+define_fact_set!(Kir1, [SingleExit, PureSignatures, FieldOrder]);
+
+impl DefSingleExit for KirBuilder {}
+impl DefPureSignatures for KirBuilder {}
+
+impl Process for KirBuilder {
+    type Requires = SourceAST;
+    type Provides = Kir1;
+
+    fn run(self, input: SourceAST) -> Kir1 {
+        Kir1::new(
+            SingleExit::new::<Self>(&self),
+            PureSignatures::new::<Self>(&self),
+            take!(input, FieldOrder),
+        )
+    }
+}
