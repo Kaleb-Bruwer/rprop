@@ -1,31 +1,58 @@
-use crate::framework::define_fact;
+use crate::{define_fact_set, framework::define_atomic_fact};
 
-define_fact!(
+define_atomic_fact!(
     /// The given program is well formed in its language
     ValidSourceProgram,
 );
 
-define_fact!(
+define_atomic_fact!(
     /// If the language has a notion of field order, the order is provided
     FieldOrder,
 );
 
-define_fact!(
+define_atomic_fact!(
     /// At every point in the program, we know which locations the source names are bound to
     LocNameBindings,
 );
 
-define_fact!(
+define_atomic_fact!(
     /// Every return only has a single exit point, no diverging execution paths
     SingleExit,
 );
 
-define_fact!(
+define_fact_set!(
     /// All functions are pure; no side effects or external reads
     PureSignatures,
+    [InternalPureSignatures, ExternStateInSignatures],
 );
 
-define_fact!(
+define_atomic_fact!(
+    /// All functions are pure, not accounting for ExternState
+    InternalPureSignatures,
+);
+
+define_atomic_fact!(
+    /// ExternState is in function signatures
+    ExternStateInSignatures,
+);
+
+define_atomic_fact!(
     /// There is no dead code; every statement is executed
     NoDeadCode,
+);
+
+define_atomic_fact!(
+    /// Call substitutions have been resolved
+    ResolvedSubstitutions,
+);
+
+define_atomic_fact!(
+    /// Struct fields are only identified by their names, never positions
+    NoNumberedFields,
+);
+
+define_fact_set!(
+    /// Numbered struct fields have been canonized
+    StructCanon,
+    [NoNumberedFields, FieldOrder],
 );

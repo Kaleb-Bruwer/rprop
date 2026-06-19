@@ -146,6 +146,7 @@ pub fn define_fact_set(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         #(#attrs)*
+        #[derive(Clone, Copy)]
         pub struct #name {
             #(#field_defs,)*
         }
