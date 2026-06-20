@@ -1,6 +1,7 @@
 use crate::{
     facts::{
-        ExternStateInSignatures, FieldOrder, InternalPureSignatures, NumberedFieldsRenamed, PureSignatures, ResolvedSubstitutions, SingleExit, StructCanon, ValidSourceProgram
+        ExternStateInSignatures, FieldOrder, InternalPureSignatures, NumberedFieldsRenamed, PureSignatures,
+        ResolvedSubstitutions, SingleExit, StructCanon, ValidSourceProgram,
     },
     framework::{Process, ProveFact, define_conjunction, take},
 };
@@ -17,10 +18,7 @@ impl Process for GetAST {
     type Provides = SourceAST;
 
     fn run(self, _input: ()) -> SourceAST {
-        SourceAST::new(
-            ValidSourceProgram::new::<Self>(&self),
-            FieldOrder::new::<Self>(&self),
-        )
+        SourceAST::new(ValidSourceProgram::new::<Self>(&self), FieldOrder::new::<Self>(&self))
     }
 }
 
@@ -46,7 +44,6 @@ impl Process for KirBuilder {
     }
 }
 
-
 pub struct PropagateExtern;
 impl ProveFact<ExternStateInSignatures> for PropagateExtern {}
 
@@ -59,10 +56,7 @@ impl Process for PropagateExtern {
     fn run(self, input: Kir1) -> Kir1_2S1 {
         Kir1_2S1::new(
             take!(input, SingleExit),
-            PureSignatures::new(
-                take!(input, InternalPureSignatures),
-                ExternStateInSignatures::new::<Self>(&self),
-            ),
+            PureSignatures::new(take!(input, InternalPureSignatures), ExternStateInSignatures::new::<Self>(&self)),
             take!(input, FieldOrder),
             take!(input, ResolvedSubstitutions),
         )
@@ -85,6 +79,6 @@ impl Process for StructCanonStep {
             take!(input, PureSignatures),
             StructCanon::from(renamed),
             take!(input, ResolvedSubstitutions),
-            )
+        )
     }
 }

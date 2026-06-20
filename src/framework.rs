@@ -5,10 +5,10 @@ pub trait Conjunction: Fact {}
 pub trait Disjunction: Fact {}
 
 /// Allows a process to introduce a fact
-pub trait ProveFact<F: Fact> : Process {}
+pub trait ProveFact<F: Fact>: Process {}
 
 /// Allows an artifact to contain a fact
-pub trait HasFact<F: Fact> : Conjunction{
+pub trait HasFact<F: Fact>: Conjunction {
     fn fact(&self) -> F;
 }
 
@@ -20,11 +20,10 @@ pub trait Process {
 }
 
 pub use crate::define_atomic_fact;
-pub use crate::take;
 pub use crate::define_conjunction;
 pub use crate::define_disjunction;
+pub use crate::take;
 pub use rose_architecture_macros::define_fact_set as define_fact_set_inner;
-
 
 #[macro_export]
 macro_rules! define_conjunction {
