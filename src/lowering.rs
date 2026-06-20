@@ -1,8 +1,8 @@
 use crate::{
     facts::{
-        ExternStateInSignatures, FieldOrder, InternalPureSignatures, NoNumberedFields, PureSignatures, ResolvedSubstitutions, SingleExit, StructCanon, ValidSourceProgram
+        ExternStateInSignatures, FieldOrder, InternalPureSignatures, NumberedFieldsRenamed, PureSignatures, ResolvedSubstitutions, SingleExit, StructCanon, ValidSourceProgram
     },
-    framework::{Process, ProveFact, define_fact_set, take},
+    framework::{Process, ProveFact, define_conjunction, take},
 };
 
 pub struct GetAST;
@@ -10,7 +10,7 @@ pub struct GetAST;
 impl ProveFact<ValidSourceProgram> for GetAST {}
 impl ProveFact<FieldOrder> for GetAST {}
 
-define_fact_set!(SourceAST, [ValidSourceProgram, FieldOrder]);
+define_conjunction!(SourceAST, [ValidSourceProgram, FieldOrder]);
 
 impl Process for GetAST {
     type Requires = ();
@@ -30,7 +30,7 @@ impl ProveFact<SingleExit> for KirBuilder {}
 impl ProveFact<InternalPureSignatures> for KirBuilder {}
 impl ProveFact<ResolvedSubstitutions> for KirBuilder {}
 
-define_fact_set!(Kir1, [SingleExit, InternalPureSignatures, FieldOrder, ResolvedSubstitutions]);
+define_conjunction!(Kir1, [SingleExit, InternalPureSignatures, FieldOrder, ResolvedSubstitutions]);
 
 impl Process for KirBuilder {
     type Requires = SourceAST;
@@ -50,7 +50,7 @@ impl Process for KirBuilder {
 pub struct PropagateExtern;
 impl ProveFact<ExternStateInSignatures> for PropagateExtern {}
 
-define_fact_set!(Kir1_2S1, [SingleExit, PureSignatures, FieldOrder, ResolvedSubstitutions]);
+define_conjunction!(Kir1_2S1, [SingleExit, PureSignatures, FieldOrder, ResolvedSubstitutions]);
 
 impl Process for PropagateExtern {
     type Requires = Kir1;
@@ -70,22 +70,20 @@ impl Process for PropagateExtern {
 }
 
 pub struct StructCanonStep;
-impl ProveFact<NoNumberedFields> for StructCanonStep {}
 
-define_fact_set!(Kir1_2, [SingleExit, PureSignatures, StructCanon, ResolvedSubstitutions]);
+define_conjunction!(Kir1_2, [SingleExit, PureSignatures, StructCanon, ResolvedSubstitutions]);
 
 impl Process for StructCanonStep {
     type Requires = Kir1_2S1;
     type Provides = Kir1_2;
 
     fn run(self, input: Self::Requires) -> Self::Provides {
+        let renamed = NumberedFieldsRenamed::new(take!(input, FieldOrder));
+
         Kir1_2::new(
             take!(input, SingleExit),
             take!(input, PureSignatures),
-            StructCanon::new(
-                NoNumberedFields::new::<Self>(&self),
-                take!(input, FieldOrder),
-            ),
+            StructCanon::from(renamed),
             take!(input, ResolvedSubstitutions),
             )
     }
