@@ -7,11 +7,11 @@ pub use conjunction::emit_conjunction;
 pub use disjunction::emit_disjunction;
 
 use quote::quote;
-use syn::{Ident, Result};
+use syn::Result;
 
-use crate::ast::{NamedExpr, NamedPropExpr, ProposeInput};
+use crate::ast::{NamedExpr, ProposeInput};
 
-pub fn emit_propose(input: ProposeInput, named: &NamedPropExpr) -> Result<proc_macro2::TokenStream> {
+pub fn emit_propose(input: ProposeInput, named: &NamedExpr) -> Result<proc_macro2::TokenStream> {
     let mut nodes = Vec::new();
     named.collect_postorder(&mut nodes);
 
@@ -19,29 +19,29 @@ pub fn emit_propose(input: ProposeInput, named: &NamedPropExpr) -> Result<proc_m
     let is_bare_atomic = input.expr.is_none();
 
     for node in nodes {
-        match &node.expr {
-            NamedExpr::Atom => {
-                if is_bare_atomic && node.name == input.name {
-                    emitted.push(emit_atomic(&input.attrs, &node.name));
+        match node {
+            NamedExpr::Atom(ident) => {
+                if is_bare_atomic && *ident == input.name {
+                    emitted.push(emit_atomic(&input.attrs, ident));
                 }
             }
-            NamedExpr::And(children) => {
-                let members: Vec<Ident> = children.iter().map(|c| c.name.clone()).collect();
-                let attrs = if node.name == named.name {
+            NamedExpr::And { name, children } => {
+                let members: Vec<_> = children.iter().map(|c| c.member_type()).collect();
+                let attrs = if *name == input.name {
                     input.attrs.clone()
                 } else {
                     Vec::new()
                 };
-                emitted.push(emit_conjunction(&attrs, &node.name, &members)?);
+                emitted.push(emit_conjunction(&attrs, name, &members)?);
             }
-            NamedExpr::Or(children) => {
-                let variants: Vec<Ident> = children.iter().map(|c| c.name.clone()).collect();
-                let attrs = if node.name == named.name {
+            NamedExpr::Or { name, children } => {
+                let variants: Vec<_> = children.iter().map(|c| c.member_type()).collect();
+                let attrs = if *name == input.name {
                     input.attrs.clone()
                 } else {
                     Vec::new()
                 };
-                emitted.push(emit_disjunction(&attrs, &node.name, &variants)?);
+                emitted.push(emit_disjunction(&attrs, name, &variants)?);
             }
         }
     }

@@ -1,10 +1,10 @@
 use quote::format_ident;
 use syn::{Error, Ident, Result};
 
-use crate::ast::{NamedExpr, NamedPropExpr, PropExpr, ProposeInput};
+use crate::ast::{NamedExpr, PropExpr, ProposeInput};
 
 pub struct NameFactory {
-    base: Ident,
+    pub(crate) base: Ident,
     counter: u32,
 }
 
@@ -20,42 +20,36 @@ impl NameFactory {
     }
 }
 
-pub fn lower_propose(input: ProposeInput) -> Result<NamedPropExpr> {
+pub fn lower_propose(input: ProposeInput) -> Result<NamedExpr> {
     match input.expr {
-        None => Ok(NamedPropExpr {
-            name: input.name.clone(),
-            expr: NamedExpr::Atom,
-        }),
+        None => Ok(NamedExpr::Atom(input.name)),
         Some(expr) => {
             let mut factory = NameFactory::new(input.name.clone());
-            name_expr(expr, Some(input.name), &mut factory)
+            name_expr(expr, input.name, &mut factory)
         }
     }
 }
 
 fn name_expr(
     expr: PropExpr,
-    user_name: Option<Ident>,
+    user_name: Ident,
     factory: &mut NameFactory,
-) -> Result<NamedPropExpr> {
+) -> Result<NamedExpr> {
     match expr {
-        PropExpr::Atom(ident) => {
-            if let Some(name) = user_name {
-                Ok(NamedPropExpr {
-                    name,
-                    expr: NamedExpr::And(vec![Box::new(NamedPropExpr {
-                        name: ident.clone(),
-                        expr: NamedExpr::Atom,
-                    })]),
-                })
-            } else {
-                Ok(NamedPropExpr {
-                    name: ident.clone(),
-                    expr: NamedExpr::Atom,
-                })
-            }
+        PropExpr::Atom(ident) => Ok(NamedExpr::And {
+            name: user_name,
+            children: vec![Box::new(NamedExpr::Atom(ident))],
+        }),
+        PropExpr::And(children) => {
+            let named_children: Result<Vec<Box<NamedExpr>>> = children
+                .into_iter()
+                .map(|c| c.into_named(factory).map(Box::new))
+                .collect();
+            Ok(NamedExpr::And {
+                name: user_name,
+                children: named_children?,
+            })
         }
-        PropExpr::And(children) => name_composite(children, user_name, factory, true),
         PropExpr::Or(children) => {
             if children.len() < 2 {
                 return Err(Error::new_spanned(
@@ -63,34 +57,16 @@ fn name_expr(
                     "disjunction requires at least two operands",
                 ));
             }
-            name_composite(children, user_name, factory, false)
+            let named_children: Result<Vec<Box<NamedExpr>>> = children
+                .into_iter()
+                .map(|c| c.into_named(factory).map(Box::new))
+                .collect();
+            Ok(NamedExpr::Or {
+                name: user_name,
+                children: named_children?,
+            })
         }
     }
-}
-
-fn name_composite(
-    children: Vec<Box<PropExpr>>,
-    user_name: Option<Ident>,
-    factory: &mut NameFactory,
-    is_and: bool,
-) -> Result<NamedPropExpr> {
-    let name = match user_name {
-        Some(n) => n,
-        None => factory.next(),
-    };
-
-    let named_children: Result<Vec<Box<NamedPropExpr>>> = children
-        .into_iter()
-        .map(|c| name_expr(*c, None, factory).map(Box::new))
-        .collect();
-
-    let expr = if is_and {
-        NamedExpr::And(named_children?)
-    } else {
-        NamedExpr::Or(named_children?)
-    };
-
-    Ok(NamedPropExpr { name, expr })
 }
 
 #[cfg(test)]
@@ -120,10 +96,13 @@ mod tests {
             ])),
         };
         let named = lower_propose(input).unwrap();
-        assert_eq!(named.name.to_string(), "X");
-        let NamedExpr::And(children) = &named.expr else {
+        let NamedExpr::And { name, children } = &named else {
             panic!("expected And");
         };
-        assert_eq!(children[1].name.to_string(), "X_0");
+        assert_eq!(name.to_string(), "X");
+        let NamedExpr::Or { name: or_name, .. } = &*children[1] else {
+            panic!("expected Or");
+        };
+        assert_eq!(or_name.to_string(), "X_0");
     }
 }
