@@ -1,4 +1,4 @@
-use crate::{define_conjunction, define_disjunction, framework::define_atomic_fact};
+use crate::framework::{define_atomic_fact, propose};
 
 define_atomic_fact!(
     /// The given program is well formed in its language
@@ -20,10 +20,9 @@ define_atomic_fact!(
     SingleExit,
 );
 
-define_conjunction!(
+propose!(
     /// All functions are pure; no side effects or external reads
-    PureSignatures,
-    [InternalPureSignatures, ExternStateInSignatures],
+    PureSignatures = InternalPureSignatures && ExternStateInSignatures,
 );
 
 define_atomic_fact!(
@@ -51,14 +50,12 @@ define_atomic_fact!(
     NoNumberedFields,
 );
 
-define_conjunction!(
+propose!(
     /// Numbered fields have been switched to named fields
-    NumberedFieldsRenamed,
-    [FieldOrder]
+    NumberedFieldsRenamed = FieldOrder,
 );
 
-define_disjunction!(
+propose!(
     /// Struct fields are in canonized form
-    StructCanon,
-    [NoNumberedFields, NumberedFieldsRenamed]
+    StructCanon = NoNumberedFields || NumberedFieldsRenamed,
 );

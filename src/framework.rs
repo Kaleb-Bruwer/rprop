@@ -20,53 +20,9 @@ pub trait Process {
 }
 
 pub use crate::define_atomic_fact;
-pub use crate::define_conjunction;
-pub use crate::define_disjunction;
 pub use crate::take;
-pub use rose_architecture_macros::define_fact_set as define_fact_set_inner;
-
-#[macro_export]
-macro_rules! define_conjunction {
-    (
-        $(#[$doc:meta])*
-        $name:ident,
-        [$($fact:ident),* $(,)?] $(,)?
-    ) => {
-        $crate::framework::define_fact_set_inner!(
-            $(#[$doc])*
-            $name,
-            [$($fact),*]
-        );
-
-        impl $crate::framework::Fact for $name {}
-        impl $crate::framework::Conjunction for $name {}
-    };
-}
-
-#[macro_export]
-macro_rules! define_disjunction {
-    (
-        $(#[$doc:meta])*
-        $name:ident,
-        [$($fact:ident),* $(,)?] $(,)?
-    ) => {
-        #[derive(Clone, Copy)]
-        pub enum $name {
-            $($fact($fact)),*
-        }
-
-        impl $crate::framework::Fact for $name {}
-        impl $crate::framework::Disjunction for $name {}
-
-        $(
-            impl From<$fact> for $name {
-                fn from(fact: $fact) -> Self {
-                    $name::$fact(fact)
-                }
-            }
-        )*
-    }
-}
+#[allow(unused_imports)]
+pub use rose_architecture_macros::{define_conjunction, define_disjunction, propose};
 
 #[macro_export]
 macro_rules! define_atomic_fact {

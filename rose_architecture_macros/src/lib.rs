@@ -1,28 +1,28 @@
-use std::collections::HashMap;
+mod ast;
+mod emit;
+mod lower;
+mod parse;
 
-use heck::ToSnakeCase;
 use proc_macro::TokenStream;
 use proc_macro2::Span;
-use quote::{format_ident, quote};
 use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input,
-    Attribute, Ident, Token,
+    Attribute, Ident, Result, Token,
 };
 
-struct FactSetInput {
+use ast::ProposeInput;
+use emit::{emit_conjunction, emit_disjunction, emit_propose};
+use lower::lower_propose;
+
+struct BracketFactList {
     attrs: Vec<Attribute>,
     name: Ident,
-    facts: Vec<FactEntry>,
+    facts: Vec<Ident>,
 }
 
-enum FactEntry {
-    Plain(Ident),
-    Aliased { fact: Ident, field: Ident },
-}
-
-impl Parse for FactSetInput {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
+impl Parse for BracketFactList {
+    fn parse(input: ParseStream) -> Result<Self> {
         let attrs = input.call(Attribute::parse_outer)?;
         let name: Ident = input.parse()?;
         input.parse::<Token![,]>()?;
@@ -32,68 +32,14 @@ impl Parse for FactSetInput {
 
         let mut facts = Vec::new();
         while !content.is_empty() {
-            let fact: Ident = content.parse()?;
-            if content.peek(Token![as]) {
-                content.parse::<Token![as]>()?;
-                let field: Ident = content.parse()?;
-                facts.push(FactEntry::Aliased { fact, field });
-            } else {
-                facts.push(FactEntry::Plain(fact));
-            }
-
+            facts.push(content.parse()?);
             if content.peek(Token![,]) {
                 content.parse::<Token![,]>()?;
             }
         }
 
-        Ok(FactSetInput { attrs, name, facts })
+        Ok(BracketFactList { attrs, name, facts })
     }
-}
-
-struct ResolvedFact {
-    fact: Ident,
-    field: Ident,
-}
-
-fn resolve_facts(facts: Vec<FactEntry>) -> syn::Result<Vec<ResolvedFact>> {
-    let mut seen_facts: HashMap<String, Ident> = HashMap::new();
-    let mut seen_fields: HashMap<String, Ident> = HashMap::new();
-    let mut resolved = Vec::new();
-
-    for entry in facts {
-        let (fact, field) = match entry {
-            FactEntry::Plain(fact) => {
-                let field_name = fact.to_string().to_snake_case();
-                let field = format_ident!("{}", field_name, span = fact.span());
-                (fact, field)
-            }
-            FactEntry::Aliased { fact, field } => (fact, field),
-        };
-
-        if let Some(other) = seen_facts.get(fact.to_string().as_str()) {
-            return Err(syn::Error::new(
-                fact.span(),
-                format!("duplicate fact `{fact}` (already listed as `{other}`)"),
-            ));
-        }
-        seen_facts.insert(fact.to_string(), fact.clone());
-
-        let field_key = field.to_string();
-        if let Some(other) = seen_fields.get(&field_key) {
-            return Err(syn::Error::new(
-                field.span(),
-                format!(
-                    "`{fact}` maps to field `{field_key}`, which is already used by `{other}`; \
-                     use `{fact} as custom_name` to disambiguate"
-                ),
-            ));
-        }
-        seen_fields.insert(field_key, fact.clone());
-
-        resolved.push(ResolvedFact { fact, field });
-    }
-
-    Ok(resolved)
 }
 
 fn error_tokens(message: impl AsRef<str>, span: Span) -> TokenStream {
@@ -103,64 +49,93 @@ fn error_tokens(message: impl AsRef<str>, span: Span) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn define_fact_set(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as FactSetInput);
+pub fn propose(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ProposeInput);
+
+    let named = match lower_propose(input.clone()) {
+        Ok(n) => n,
+        Err(e) => return e.to_compile_error().into(),
+    };
+
+    match emit_propose(input, &named) {
+        Ok(tokens) => tokens.into(),
+        Err(e) => e.to_compile_error().into(),
+    }
+}
+
+#[proc_macro]
+pub fn define_conjunction(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as BracketFactList);
 
     if input.facts.is_empty() {
         return error_tokens(
-            "define_fact_set requires at least one fact",
+            "define_conjunction requires at least one fact",
             input.name.span(),
         );
     }
 
-    let resolved = match resolve_facts(input.facts) {
-        Ok(facts) => facts,
-        Err(error) => return error.to_compile_error().into(),
-    };
+    match emit_conjunction(&input.attrs, &input.name, &input.facts) {
+        Ok(tokens) => tokens.into(),
+        Err(e) => e.to_compile_error().into(),
+    }
+}
 
-    let name = &input.name;
-    let attrs = &input.attrs;
+#[proc_macro]
+pub fn define_disjunction(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as BracketFactList);
 
-    let field_defs = resolved.iter().map(|r| {
-        let fact = &r.fact;
-        let field = &r.field;
-        quote! { pub #field: #fact }
-    });
-    let new_params = resolved.iter().map(|r| {
-        let fact = &r.fact;
-        let field = &r.field;
-        quote! { #field: #fact }
-    });
-    let new_fields = resolved.iter().map(|r| &r.field);
-    let has_fact_impls = resolved.iter().map(|r| {
-        let fact = &r.fact;
-        let field = &r.field;
-        quote! {
-            impl crate::framework::HasFact<#fact> for #name {
-                fn fact(&self) -> #fact {
-                    self.#field
-                }
-            }
-        }
-    });
+    if input.facts.len() < 2 {
+        return error_tokens(
+            "define_disjunction requires at least two facts",
+            input.name.span(),
+        );
+    }
 
-    let expanded = quote! {
-        #(#attrs)*
-        #[derive(Clone, Copy)]
-        pub struct #name {
-            #(#field_defs,)*
-        }
+    match emit_disjunction(&input.attrs, &input.name, &input.facts) {
+        Ok(tokens) => tokens.into(),
+        Err(e) => e.to_compile_error().into(),
+    }
+}
 
-        impl #name {
-            pub fn new(#(#new_params,)*) -> Self {
-                Self {
-                    #(#new_fields,)*
-                }
-            }
-        }
+/// Backward-compatible alias used by older `define_fact_set_inner` re-exports.
+#[proc_macro]
+pub fn define_fact_set(input: TokenStream) -> TokenStream {
+    define_conjunction(input)
+}
 
-        #(#has_fact_impls)*
-    };
+#[cfg(test)]
+mod integration {
+    use super::*;
+    use ast::PropExpr;
+    use lower::lower_propose;
+    use quote::format_ident;
+    use syn::parse_str;
 
-    expanded.into()
+    #[test]
+    fn emit_nested_proposition() {
+        let input = ProposeInput {
+            attrs: vec![],
+            name: format_ident!("PureSignatures"),
+            expr: Some(PropExpr::And(vec![
+                Box::new(PropExpr::Atom(format_ident!("InternalPureSignatures"))),
+                Box::new(PropExpr::Or(vec![
+                    Box::new(PropExpr::Atom(format_ident!("A"))),
+                    Box::new(PropExpr::Atom(format_ident!("B"))),
+                ])),
+            ])),
+        };
+        let named = lower_propose(input.clone()).unwrap();
+        let tokens = emit_propose(input, &named).unwrap();
+        let rendered = tokens.to_string();
+        assert!(rendered.contains("struct PureSignatures"));
+        assert!(rendered.contains("enum PureSignatures_0"));
+    }
+
+    #[test]
+    fn parse_assign_input() {
+        let input: ProposeInput = parse_str("StructCanon = NoNumberedFields || NumberedFieldsRenamed")
+            .unwrap();
+        assert_eq!(input.name.to_string(), "StructCanon");
+        assert!(matches!(input.expr, Some(PropExpr::Or(_))));
+    }
 }
