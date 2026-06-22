@@ -1,7 +1,7 @@
 use rose_architecture_macros::propose;
 
 use crate::{
-    framework::{Process, ProveProp, take},
+    framework::{Process, ProvideProp, take},
     props::{
         ExternStateInSignatures, FieldOrder, InternalPureSignatures, NumberedFieldsRenamed, PureSignatures,
         ResolvedSubstitutions, SingleExit, StructCanon, ValidSourceProgram,
@@ -10,8 +10,8 @@ use crate::{
 
 pub struct GetAST;
 
-impl ProveProp<ValidSourceProgram> for GetAST {}
-impl ProveProp<FieldOrder> for GetAST {}
+impl ProvideProp<ValidSourceProgram> for GetAST {}
+impl ProvideProp<FieldOrder> for GetAST {}
 
 propose!(SourceAST = ValidSourceProgram && FieldOrder);
 
@@ -26,9 +26,9 @@ impl Process for GetAST {
 
 pub struct KirBuilder;
 
-impl ProveProp<SingleExit> for KirBuilder {}
-impl ProveProp<InternalPureSignatures> for KirBuilder {}
-impl ProveProp<ResolvedSubstitutions> for KirBuilder {}
+impl ProvideProp<SingleExit> for KirBuilder {}
+impl ProvideProp<InternalPureSignatures> for KirBuilder {}
+impl ProvideProp<ResolvedSubstitutions> for KirBuilder {}
 
 propose!(Kir1 = SingleExit && InternalPureSignatures && FieldOrder && ResolvedSubstitutions);
 
@@ -47,7 +47,7 @@ impl Process for KirBuilder {
 }
 
 pub struct PropagateExtern;
-impl ProveProp<ExternStateInSignatures> for PropagateExtern {}
+impl ProvideProp<ExternStateInSignatures> for PropagateExtern {}
 
 propose!(Kir1_2S1 = SingleExit && PureSignatures && FieldOrder && ResolvedSubstitutions);
 

@@ -4,8 +4,8 @@ pub trait AtomicProp: Prop {}
 pub trait Conjunction: Prop {}
 pub trait Disjunction: Prop {}
 
-/// Allows a process to introduce a proposition
-pub trait ProveProp<F: Prop>: Process {}
+/// Introduce a proposition without proof, recommended for atomic propositions only
+pub trait ProvideProp<P: Prop> {}
 
 /// Allows an artifact to contain a proposition
 pub trait HasProp<F: Prop>: Conjunction {
@@ -39,7 +39,7 @@ macro_rules! define_atomic_prop {
         impl $crate::framework::Prop for $prop {}
 
         impl $prop {
-            pub(crate) fn new<P: $crate::framework::ProveProp<Self>>(_provider: &P) -> Self {
+            pub(crate) fn new<P: $crate::framework::ProvideProp<Self>>(_provider: &P) -> Self {
                 Self { _private: () }
             }
         }

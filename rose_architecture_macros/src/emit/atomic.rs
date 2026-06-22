@@ -12,7 +12,7 @@ pub fn emit_atomic(attrs: &[Attribute], name: &Ident) -> proc_macro2::TokenStrea
         impl crate::framework::Prop for #name {}
 
         impl #name {
-            pub(crate) fn new<P: crate::framework::ProveProp<Self>>(_provider: &P) -> Self {
+            pub(crate) fn new<P: crate::framework::ProvideProp<Self>>(_provider: &P) -> Self {
                 Self { _private: () }
             }
         }
