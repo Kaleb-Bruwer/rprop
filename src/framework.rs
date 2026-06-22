@@ -1,15 +1,15 @@
-pub trait Fact {}
+pub trait Prop {}
 
-pub trait AtomicFact: Fact {}
-pub trait Conjunction: Fact {}
-pub trait Disjunction: Fact {}
+pub trait AtomicProp: Prop {}
+pub trait Conjunction: Prop {}
+pub trait Disjunction: Prop {}
 
-/// Allows a process to introduce a fact
-pub trait ProveFact<F: Fact>: Process {}
+/// Allows a process to introduce a proposition
+pub trait ProveProp<F: Prop>: Process {}
 
-/// Allows an artifact to contain a fact
-pub trait HasFact<F: Fact>: Conjunction {
-    fn fact(&self) -> F;
+/// Allows an artifact to contain a proposition
+pub trait HasProp<F: Prop>: Conjunction {
+    fn prop(&self) -> F;
 }
 
 pub trait Process {
@@ -19,27 +19,27 @@ pub trait Process {
     fn run(self, input: Self::Requires) -> Self::Provides;
 }
 
-pub use crate::define_atomic_fact;
+pub use crate::define_atomic_prop;
 pub use crate::take;
 #[allow(unused_imports)]
 pub use rose_architecture_macros::{define_conjunction, define_disjunction, propose};
 
 #[macro_export]
-macro_rules! define_atomic_fact {
+macro_rules! define_atomic_prop {
     (
         $(#[$doc:meta])*
-        $fact:ident $(,)?
+        $prop:ident $(,)?
     ) => {
         $(#[$doc])*
         #[derive(Clone, Copy)]
-        pub struct $fact {
+        pub struct $prop {
             _private: (),
         }
 
-        impl $crate::framework::Fact for $fact {}
+        impl $crate::framework::Prop for $prop {}
 
-        impl $fact {
-            pub(crate) fn new<P: $crate::framework::ProveFact<Self>>(_provider: &P) -> Self {
+        impl $prop {
+            pub(crate) fn new<P: $crate::framework::ProveProp<Self>>(_provider: &P) -> Self {
                 Self { _private: () }
             }
         }
@@ -48,7 +48,7 @@ macro_rules! define_atomic_fact {
 
 #[macro_export]
 macro_rules! take {
-    ($set:expr, $fact:ident) => {
-        $crate::framework::HasFact::<$fact>::fact(&$set)
+    ($set:expr, $prop:ident) => {
+        $crate::framework::HasProp::<$prop>::prop(&$set)
     };
 }

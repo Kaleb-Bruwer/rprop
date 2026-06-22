@@ -65,7 +65,7 @@ pub fn emit_conjunction(
             #( pub #member_fields: #member_tys, )*
         }
 
-        impl crate::framework::Fact for #name {}
+        impl crate::framework::Prop for #name {}
         impl crate::framework::Conjunction for #name {}
 
         impl #name {
@@ -77,8 +77,8 @@ pub fn emit_conjunction(
         }
 
         #(
-            impl crate::framework::HasFact<#member_tys> for #name {
-                fn fact(&self) -> #member_tys {
+            impl crate::framework::HasProp<#member_tys> for #name {
+                fn prop(&self) -> #member_tys {
                     self.#member_fields
                 }
             }

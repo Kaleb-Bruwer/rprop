@@ -20,13 +20,13 @@ pub fn emit_disjunction(
             #( #variants(#variants) ),*
         }
 
-        impl crate::framework::Fact for #name {}
+        impl crate::framework::Prop for #name {}
         impl crate::framework::Disjunction for #name {}
 
         #(
             impl From<#variants> for #name {
-                fn from(fact: #variants) -> Self {
-                    Self::#variants(fact)
+                fn from(prop: #variants) -> Self {
+                    Self::#variants(prop)
                 }
             }
         )*

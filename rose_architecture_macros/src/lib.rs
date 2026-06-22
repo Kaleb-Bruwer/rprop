@@ -15,13 +15,13 @@ use ast::ProposeInput;
 use emit::{emit_conjunction, emit_disjunction, emit_propose};
 use lower::lower_propose;
 
-struct BracketFactList {
+struct BracketPropList {
     attrs: Vec<Attribute>,
     name: Ident,
-    facts: Vec<Ident>,
+    props: Vec<Ident>,
 }
 
-impl Parse for BracketFactList {
+impl Parse for BracketPropList {
     fn parse(input: ParseStream) -> Result<Self> {
         let attrs = input.call(Attribute::parse_outer)?;
         let name: Ident = input.parse()?;
@@ -30,15 +30,15 @@ impl Parse for BracketFactList {
         let content;
         syn::bracketed!(content in input);
 
-        let mut facts = Vec::new();
+        let mut props = Vec::new();
         while !content.is_empty() {
-            facts.push(content.parse()?);
+            props.push(content.parse()?);
             if content.peek(Token![,]) {
                 content.parse::<Token![,]>()?;
             }
         }
 
-        Ok(BracketFactList { attrs, name, facts })
+        Ok(BracketPropList { attrs, name, props })
     }
 }
 
@@ -65,16 +65,16 @@ pub fn propose(input: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn define_conjunction(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as BracketFactList);
+    let input = parse_macro_input!(input as BracketPropList);
 
-    if input.facts.is_empty() {
+    if input.props.is_empty() {
         return error_tokens(
-            "define_conjunction requires at least one fact",
+            "define_conjunction requires at least one proposition",
             input.name.span(),
         );
     }
 
-    match emit_conjunction(&input.attrs, &input.name, &input.facts) {
+    match emit_conjunction(&input.attrs, &input.name, &input.props) {
         Ok(tokens) => tokens.into(),
         Err(e) => e.to_compile_error().into(),
     }
@@ -82,25 +82,19 @@ pub fn define_conjunction(input: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn define_disjunction(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as BracketFactList);
+    let input = parse_macro_input!(input as BracketPropList);
 
-    if input.facts.len() < 2 {
+    if input.props.len() < 2 {
         return error_tokens(
-            "define_disjunction requires at least two facts",
+            "define_disjunction requires at least two propositions",
             input.name.span(),
         );
     }
 
-    match emit_disjunction(&input.attrs, &input.name, &input.facts) {
+    match emit_disjunction(&input.attrs, &input.name, &input.props) {
         Ok(tokens) => tokens.into(),
         Err(e) => e.to_compile_error().into(),
     }
-}
-
-/// Backward-compatible alias used by older `define_fact_set_inner` re-exports.
-#[proc_macro]
-pub fn define_fact_set(input: TokenStream) -> TokenStream {
-    define_conjunction(input)
 }
 
 #[cfg(test)]
