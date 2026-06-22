@@ -1,9 +1,11 @@
+use rose_architecture_macros::propose;
+
 use crate::{
     facts::{
         ExternStateInSignatures, FieldOrder, InternalPureSignatures, NumberedFieldsRenamed, PureSignatures,
         ResolvedSubstitutions, SingleExit, StructCanon, ValidSourceProgram,
     },
-    framework::{Process, ProveFact, define_conjunction, take},
+    framework::{Process, ProveFact, take},
 };
 
 pub struct GetAST;
@@ -11,7 +13,7 @@ pub struct GetAST;
 impl ProveFact<ValidSourceProgram> for GetAST {}
 impl ProveFact<FieldOrder> for GetAST {}
 
-define_conjunction!(SourceAST, [ValidSourceProgram, FieldOrder]);
+propose!(SourceAST = ValidSourceProgram && FieldOrder);
 
 impl Process for GetAST {
     type Requires = ();
@@ -28,7 +30,7 @@ impl ProveFact<SingleExit> for KirBuilder {}
 impl ProveFact<InternalPureSignatures> for KirBuilder {}
 impl ProveFact<ResolvedSubstitutions> for KirBuilder {}
 
-define_conjunction!(Kir1, [SingleExit, InternalPureSignatures, FieldOrder, ResolvedSubstitutions]);
+propose!(Kir1 = SingleExit && InternalPureSignatures && FieldOrder && ResolvedSubstitutions);
 
 impl Process for KirBuilder {
     type Requires = SourceAST;
@@ -47,7 +49,7 @@ impl Process for KirBuilder {
 pub struct PropagateExtern;
 impl ProveFact<ExternStateInSignatures> for PropagateExtern {}
 
-define_conjunction!(Kir1_2S1, [SingleExit, PureSignatures, FieldOrder, ResolvedSubstitutions]);
+propose!(Kir1_2S1 = SingleExit && PureSignatures && FieldOrder && ResolvedSubstitutions);
 
 impl Process for PropagateExtern {
     type Requires = Kir1;
@@ -65,7 +67,7 @@ impl Process for PropagateExtern {
 
 pub struct StructCanonStep;
 
-define_conjunction!(Kir1_2, [SingleExit, PureSignatures, StructCanon, ResolvedSubstitutions]);
+propose!(Kir1_2 = SingleExit && PureSignatures && StructCanon && ResolvedSubstitutions);
 
 impl Process for StructCanonStep {
     type Requires = Kir1_2S1;
