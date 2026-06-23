@@ -1,12 +1,30 @@
 use quote::quote;
 use syn::{Attribute, Error, Ident, Result};
 
-pub fn emit_disjunction(attrs: &[Attribute], name: &Ident, variants: &[Ident]) -> Result<proc_macro2::TokenStream> {
+use crate::ast::ProposeKind;
+
+pub fn emit_disjunction(
+    attrs: &[Attribute],
+    name: &Ident,
+    variants: &[Ident],
+    kind: ProposeKind,
+) -> Result<proc_macro2::TokenStream> {
     if variants.len() < 2 {
         return Err(Error::new_spanned(name, "disjunction requires at least two variants"));
     }
 
     let default_variant = &variants[0];
+
+    let provide = match kind {
+        ProposeKind::Proposition => quote! {
+            impl #name {
+                pub(crate) fn provide<P: crate::framework::ProvideProp<Self>>(_provider: &P) -> Self {
+                    <Self as crate::framework::Sorry>::sorry()
+                }
+            }
+        },
+        ProposeKind::Claim => quote! {},
+    };
 
     Ok(quote! {
         #(#attrs)*
@@ -25,6 +43,8 @@ pub fn emit_disjunction(attrs: &[Attribute], name: &Ident, variants: &[Ident]) -
                 }
             }
         )*
+
+        #provide
 
         // This should not be a long term solution
         impl crate::framework::Sorry for #name {

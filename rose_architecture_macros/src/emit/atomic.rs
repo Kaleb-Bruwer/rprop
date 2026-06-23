@@ -1,7 +1,20 @@
 use quote::quote;
 use syn::{Attribute, Ident};
 
-pub fn emit_atomic(attrs: &[Attribute], name: &Ident) -> proc_macro2::TokenStream {
+use crate::ast::ProposeKind;
+
+pub fn emit_atomic(attrs: &[Attribute], name: &Ident, kind: ProposeKind) -> proc_macro2::TokenStream {
+    let provide = match kind {
+        ProposeKind::Proposition => quote! {
+            impl #name {
+                pub(crate) fn provide<P: crate::framework::ProvideProp<Self>>(_provider: &P) -> Self {
+                    Self { _private: () }
+                }
+            }
+        },
+        ProposeKind::Claim => quote! {},
+    };
+
     quote! {
         #(#attrs)*
         #[derive(Clone, Copy)]
@@ -11,11 +24,7 @@ pub fn emit_atomic(attrs: &[Attribute], name: &Ident) -> proc_macro2::TokenStrea
 
         impl crate::framework::Prop for #name {}
 
-        impl #name {
-            pub(crate) fn provide<P: crate::framework::ProvideProp<Self>>(_provider: &P) -> Self {
-                Self { _private: () }
-            }
-        }
+        #provide
 
         impl crate::framework::Sorry for #name {
             fn sorry() -> Self {

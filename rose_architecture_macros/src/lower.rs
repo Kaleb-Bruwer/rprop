@@ -48,6 +48,15 @@ fn name_expr(expr: PropExpr, user_name: Ident, factory: &mut NameFactory) -> Res
                 children.into_iter().map(|c| c.into_named(factory).map(Box::new)).collect();
             Ok(NamedExpr::Or { name: user_name, children: named_children? })
         }
+        PropExpr::Imply(premise, conclusion) => {
+            let premise_named = premise.into_named(factory)?;
+            let conclusion_named = conclusion.into_named(factory)?;
+            Ok(NamedExpr::Imply {
+                name: user_name,
+                premise: Box::new(premise_named),
+                conclusion: Box::new(conclusion_named),
+            })
+        }
     }
 }
 
@@ -86,5 +95,21 @@ mod tests {
             panic!("expected Or");
         };
         assert_eq!(or_name.to_string(), "X_0");
+    }
+
+    #[test]
+    fn top_level_implication() {
+        let input = ProposeInput {
+            attrs: vec![],
+            name: format_ident!("Renamed"),
+            expr: Some(PropExpr::Imply(Box::new(atom("FieldOrder")), Box::new(atom("NumberedFieldsRenamed")))),
+        };
+        let named = lower_propose(input).unwrap();
+        let NamedExpr::Imply { name, premise, conclusion } = &named else {
+            panic!("expected Imply");
+        };
+        assert_eq!(name.to_string(), "Renamed");
+        assert!(matches!(&**premise, NamedExpr::Atom(_)));
+        assert!(matches!(&**conclusion, NamedExpr::Atom(_)));
     }
 }

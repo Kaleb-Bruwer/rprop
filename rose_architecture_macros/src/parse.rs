@@ -27,7 +27,17 @@ impl Parse for ProposeInput {
 }
 
 fn parse_expr(input: ParseStream) -> Result<PropExpr> {
-    parse_or(input)
+    parse_implies(input)
+}
+
+fn parse_implies(input: ParseStream) -> Result<PropExpr> {
+    let mut lhs = parse_or(input)?;
+    while input.peek(Token![->]) {
+        input.parse::<Token![->]>()?;
+        let rhs = parse_implies(input)?;
+        lhs = PropExpr::Imply(Box::new(lhs), Box::new(rhs));
+    }
+    Ok(lhs)
 }
 
 fn parse_or(input: ParseStream) -> Result<PropExpr> {
@@ -52,7 +62,7 @@ fn parse_primary(input: ParseStream) -> Result<PropExpr> {
     if input.peek(syn::token::Paren) {
         let content;
         syn::parenthesized!(content in input);
-        return parse_or(&content);
+        return parse_expr(&content);
     }
 
     let ident: Ident = input.parse()?;
@@ -130,5 +140,36 @@ mod tests {
     fn named_conjunction() {
         let input = parse_input("PureSignatures = A && B");
         assert!(input.expr.is_some());
+    }
+
+    #[test]
+    fn implies_over_and() {
+        let PropExpr::Imply(premise, conclusion) = parse_only_expr("A && B -> C") else {
+            panic!("expected imply");
+        };
+        assert!(matches!(&*premise, PropExpr::And(_)));
+        assert!(matches!(&*conclusion, PropExpr::Atom(_)));
+    }
+
+    #[test]
+    fn implies_right_associative() {
+        let PropExpr::Imply(a, bc) = parse_only_expr("A -> B -> C") else {
+            panic!("expected imply");
+        };
+        assert!(matches!(&*a, PropExpr::Atom(_)));
+        let PropExpr::Imply(b, c) = &*bc else {
+            panic!("expected nested imply");
+        };
+        assert!(matches!(&**b, PropExpr::Atom(_)));
+        assert!(matches!(&**c, PropExpr::Atom(_)));
+    }
+
+    #[test]
+    fn implies_in_parentheses_with_and() {
+        let PropExpr::And(and) = parse_only_expr("(A -> B) && C") else {
+            panic!("expected and");
+        };
+        assert!(matches!(&*and[0], PropExpr::Imply(_, _)));
+        assert!(matches!(&*and[1], PropExpr::Atom(_)));
     }
 }

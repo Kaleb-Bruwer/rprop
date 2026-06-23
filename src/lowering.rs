@@ -1,4 +1,4 @@
-use rose_architecture_macros::propose;
+use rose_architecture_macros::{claim, propose};
 
 use crate::{
     framework::{Process, ProvideProp, take},
@@ -65,22 +65,22 @@ impl Process for PropagateExtern {
     }
 }
 
-pub struct StructCanonStep;
-
 propose!(Kir1_2 = SingleExit && PureSignatures && StructCanon && ResolvedSubstitutions);
+propose!(Renamed = FieldOrder -> NumberedFieldsRenamed);
 
-impl Process for StructCanonStep {
-    type Requires = Kir1_2S1;
-    type Provides = Kir1_2;
+claim!(StructCanonStep = Kir1_2S1 -> Kir1_2);
 
-    fn run(self, input: Self::Requires) -> Self::Provides {
-        let renamed = NumberedFieldsRenamed::new(take!(input, FieldOrder));
+/// Constructive proof of `StructCanonStepI`: `Kir1_2S1 -> Kir1_2`.
+fn struct_canon_proof(input: Kir1_2S1) -> Kir1_2 {
+    let renamed = NumberedFieldsRenamed::new(take!(input, FieldOrder));
 
-        Kir1_2::new(
-            take!(input, SingleExit),
-            take!(input, PureSignatures),
-            StructCanon::from(renamed),
-            take!(input, ResolvedSubstitutions),
-        )
-    }
+    Kir1_2::new(
+        take!(input, SingleExit),
+        take!(input, PureSignatures),
+        StructCanon::from(renamed),
+        take!(input, ResolvedSubstitutions),
+    )
 }
+
+/// The proof function inhabits the claimed implication type.
+pub const STRUCT_CANON_PROOF: StructCanonStep = struct_canon_proof;

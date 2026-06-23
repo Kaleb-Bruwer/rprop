@@ -7,6 +7,7 @@ pub enum PropExpr {
     Atom(Ident),
     And(Vec<Box<PropExpr>>),
     Or(Vec<Box<PropExpr>>),
+    Imply(Box<PropExpr>, Box<PropExpr>),
 }
 
 #[derive(Debug, Clone)]
@@ -14,6 +15,13 @@ pub enum NamedExpr {
     Atom(Ident),
     And { name: Ident, children: Vec<Box<NamedExpr>> },
     Or { name: Ident, children: Vec<Box<NamedExpr>> },
+    Imply { name: Ident, premise: Box<NamedExpr>, conclusion: Box<NamedExpr> },
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum ProposeKind {
+    Proposition,
+    Claim,
 }
 
 #[derive(Clone)]
@@ -28,6 +36,7 @@ impl NamedExpr {
         match self {
             NamedExpr::Atom(ident) => ident.clone(),
             NamedExpr::And { name, .. } | NamedExpr::Or { name, .. } => name.clone(),
+            NamedExpr::Imply { name, .. } => name.clone(),
         }
     }
 
@@ -38,6 +47,10 @@ impl NamedExpr {
                 for child in children {
                     child.collect_postorder(out);
                 }
+            }
+            NamedExpr::Imply { premise, conclusion, .. } => {
+                premise.collect_postorder(out);
+                conclusion.collect_postorder(out);
             }
         }
         out.push(self);
@@ -60,6 +73,15 @@ impl PropExpr {
                 let named_children: Result<Vec<Box<NamedExpr>>> =
                     children.into_iter().map(|c| c.into_named(factory).map(Box::new)).collect();
                 Ok(NamedExpr::Or { name: factory.next(), children: named_children? })
+            }
+            PropExpr::Imply(premise, conclusion) => {
+                let premise_named = premise.into_named(factory)?;
+                let conclusion_named = conclusion.into_named(factory)?;
+                Ok(NamedExpr::Imply {
+                    name: factory.next(),
+                    premise: Box::new(premise_named),
+                    conclusion: Box::new(conclusion_named),
+                })
             }
         }
     }

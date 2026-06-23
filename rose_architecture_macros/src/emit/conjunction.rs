@@ -4,6 +4,8 @@ use heck::ToSnakeCase;
 use quote::{format_ident, quote};
 use syn::{Attribute, Error, Ident, Result};
 
+use crate::ast::ProposeKind;
+
 pub struct ConjunctionMember {
     pub ty: Ident,
     pub field: Ident,
@@ -37,7 +39,12 @@ pub fn resolve_conjunction_members(members: &[Ident]) -> Result<Vec<ConjunctionM
     Ok(resolved)
 }
 
-pub fn emit_conjunction(attrs: &[Attribute], name: &Ident, members: &[Ident]) -> Result<proc_macro2::TokenStream> {
+pub fn emit_conjunction(
+    attrs: &[Attribute],
+    name: &Ident,
+    members: &[Ident],
+    kind: ProposeKind,
+) -> Result<proc_macro2::TokenStream> {
     if members.is_empty() {
         return Err(Error::new_spanned(name, "conjunction requires at least one member"));
     }
@@ -45,6 +52,17 @@ pub fn emit_conjunction(attrs: &[Attribute], name: &Ident, members: &[Ident]) ->
     let resolved = resolve_conjunction_members(members)?;
     let member_tys: Vec<_> = resolved.iter().map(|m| &m.ty).collect();
     let member_fields: Vec<_> = resolved.iter().map(|m| &m.field).collect();
+
+    let provide = match kind {
+        ProposeKind::Proposition => quote! {
+            impl #name {
+                pub(crate) fn provide<P: crate::framework::ProvideProp<Self>>(_provider: &P) -> Self {
+                    <Self as crate::framework::Sorry>::sorry()
+                }
+            }
+        },
+        ProposeKind::Claim => quote! {},
+    };
 
     Ok(quote! {
         #(#attrs)*
@@ -64,11 +82,7 @@ pub fn emit_conjunction(attrs: &[Attribute], name: &Ident, members: &[Ident]) ->
             }
         }
 
-        impl #name {
-            pub(crate) fn provide<P: crate::framework::ProvideProp<Self>>(_provider: &P) -> Self {
-                <Self as crate::framework::Sorry>::sorry()
-            }
-        }
+        #provide
 
         impl crate::framework::Sorry for #name {
             fn sorry() -> Self {
