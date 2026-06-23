@@ -53,17 +53,6 @@ pub fn emit_conjunction(
     let member_tys: Vec<_> = resolved.iter().map(|m| &m.ty).collect();
     let member_fields: Vec<_> = resolved.iter().map(|m| &m.field).collect();
 
-    let provide = match kind {
-        ProposeKind::Proposition => quote! {
-            impl #name {
-                pub(crate) fn provide<P: crate::framework::ProvideProp<Self>>(_provider: &P) -> Self {
-                    <Self as crate::framework::Sorry>::sorry()
-                }
-            }
-        },
-        ProposeKind::Claim => quote! {},
-    };
-
     Ok(quote! {
         #(#attrs)*
         #[derive(Clone, Copy)]
@@ -81,8 +70,6 @@ pub fn emit_conjunction(
                 }
             }
         }
-
-        #provide
 
         impl crate::framework::Sorry for #name {
             fn sorry() -> Self {

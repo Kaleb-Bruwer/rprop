@@ -21,7 +21,11 @@ where
 /// Introduce a proposition without proof, only allowed for atomic propositions
 /// If you need this for a non-atomic, introduce an intermediate atomic which implies the proposition
 /// i.e. `A && B` can be provided by ProvideProp<C> with `C -> A && B`
-pub trait ProvideProp<P: Prop> {}
+pub trait ProvideProp<P: Sorry>: Process {
+    fn provide(_provider: &Self) -> P {
+        P::sorry()
+    }
+}
 
 /// Allows an artifact to contain a proposition
 pub trait HasProp<F: Prop>: Conjunction {
