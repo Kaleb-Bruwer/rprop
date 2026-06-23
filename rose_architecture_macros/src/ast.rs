@@ -24,7 +24,7 @@ pub struct ProposeInput {
 }
 
 impl NamedExpr {
-    pub fn member_type(&self) -> Ident {
+    pub fn name(&self) -> Ident {
         match self {
             NamedExpr::Atom(ident) => ident.clone(),
             NamedExpr::And { name, .. } | NamedExpr::Or { name, .. } => name.clone(),
