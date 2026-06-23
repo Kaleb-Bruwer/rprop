@@ -1,21 +1,21 @@
-use crate::framework::{define_atomic_prop, propose};
+use crate::framework::propose;
 
-define_atomic_prop!(
+propose!(
     /// The given program is well formed in its language
     ValidSourceProgram,
 );
 
-define_atomic_prop!(
+propose!(
     /// If the language has a notion of field order, the order is provided
     FieldOrder,
 );
 
-define_atomic_prop!(
+propose!(
     /// At every point in the program, we know which locations the source names are bound to
     LocNameBindings,
 );
 
-define_atomic_prop!(
+propose!(
     /// Every return only has a single exit point, no diverging execution paths
     SingleExit,
 );
@@ -25,27 +25,27 @@ propose!(
     PureSignatures = InternalPureSignatures && ExternStateInSignatures,
 );
 
-define_atomic_prop!(
+propose!(
     /// All functions are pure, not accounting for ExternState
     InternalPureSignatures,
 );
 
-define_atomic_prop!(
+propose!(
     /// ExternState is in function signatures
     ExternStateInSignatures,
 );
 
-define_atomic_prop!(
+propose!(
     /// There is no dead code; every statement is executed
     NoDeadCode,
 );
 
-define_atomic_prop!(
+propose!(
     /// Call substitutions have been resolved
     ResolvedSubstitutions,
 );
 
-define_atomic_prop!(
+propose!(
     /// Struct fields are only identified by their names, never positions
     NoNumberedFields,
 );

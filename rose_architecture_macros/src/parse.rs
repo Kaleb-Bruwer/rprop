@@ -16,20 +16,12 @@ impl Parse for ProposeInput {
             if input.peek(Token![,]) {
                 input.parse::<Token![,]>()?;
             }
-            Ok(ProposeInput {
-                attrs,
-                name,
-                expr: Some(expr),
-            })
+            Ok(ProposeInput { attrs, name, expr: Some(expr) })
         } else {
             if input.peek(Token![,]) {
                 input.parse::<Token![,]>()?;
             }
-            Ok(ProposeInput {
-                attrs,
-                name,
-                expr: None,
-            })
+            Ok(ProposeInput { attrs, name, expr: None })
         }
     }
 }
@@ -107,10 +99,7 @@ mod tests {
     }
 
     fn parse_only_expr(s: &str) -> PropExpr {
-        parse_str::<ProposeInput>(&format!("X = {s}"))
-            .expect("parse")
-            .expr
-            .expect("expr")
+        parse_str::<ProposeInput>(&format!("X = {s}")).expect("parse").expr.expect("expr")
     }
 
     #[test]

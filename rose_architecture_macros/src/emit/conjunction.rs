@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use heck::ToSnakeCase;
 use quote::{format_ident, quote};
-use syn::{Attribute, Ident, Result, Error};
+use syn::{Attribute, Error, Ident, Result};
 
 pub struct ConjunctionMember {
     pub ty: Ident,
@@ -16,10 +16,7 @@ pub fn resolve_conjunction_members(members: &[Ident]) -> Result<Vec<ConjunctionM
 
     for ty in members {
         if let Some(other) = seen_types.get(&ty.to_string()) {
-            return Err(Error::new_spanned(
-                ty,
-                format!("duplicate member `{ty}` (already listed as `{other}`)"),
-            ));
+            return Err(Error::new_spanned(ty, format!("duplicate member `{ty}` (already listed as `{other}`)")));
         }
         seen_types.insert(ty.to_string(), ty.clone());
 
@@ -29,9 +26,7 @@ pub fn resolve_conjunction_members(members: &[Ident]) -> Result<Vec<ConjunctionM
         if let Some(other) = seen_fields.get(&field_name) {
             return Err(Error::new_spanned(
                 ty,
-                format!(
-                    "`{ty}` maps to field `{field_name}`, already used by `{other}`"
-                ),
+                format!("`{ty}` maps to field `{field_name}`, already used by `{other}`"),
             ));
         }
         seen_fields.insert(field_name, ty.clone());
@@ -42,16 +37,9 @@ pub fn resolve_conjunction_members(members: &[Ident]) -> Result<Vec<ConjunctionM
     Ok(resolved)
 }
 
-pub fn emit_conjunction(
-    attrs: &[Attribute],
-    name: &Ident,
-    members: &[Ident],
-) -> Result<proc_macro2::TokenStream> {
+pub fn emit_conjunction(attrs: &[Attribute], name: &Ident, members: &[Ident]) -> Result<proc_macro2::TokenStream> {
     if members.is_empty() {
-        return Err(Error::new_spanned(
-            name,
-            "conjunction requires at least one member",
-        ));
+        return Err(Error::new_spanned(name, "conjunction requires at least one member"));
     }
 
     let resolved = resolve_conjunction_members(members)?;
@@ -73,6 +61,18 @@ pub fn emit_conjunction(
                 Self {
                     #( #member_fields, )*
                 }
+            }
+        }
+
+        impl #name {
+            pub(crate) fn provide<P: crate::framework::ProvideProp<Self>>(_provider: &P) -> Self {
+                <Self as crate::framework::Sorry>::sorry()
+            }
+        }
+
+        impl crate::framework::Sorry for #name {
+            fn sorry() -> Self {
+                Self { #( #member_fields: <#member_tys as crate::framework::Sorry>::sorry(), )* }
             }
         }
 

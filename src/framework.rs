@@ -4,8 +4,25 @@ pub trait AtomicProp: Prop {}
 pub trait Conjunction: Prop {}
 pub trait Disjunction: Prop {}
 
-/// Introduce a proposition without proof, recommended for atomic propositions only
+pub trait Implication: Prop {
+    type Premise: Prop;
+    type Conclusion: Prop;
+}
+
+/// Bypass any proof requirements and provide a proposition directly
+pub trait Sorry: Prop {
+    fn sorry() -> Self;
+}
+
+/// Introduce a proposition without proof, only allowed for atomic propositions
+/// If you need this for a non-atomic, introduce an intermediate atomic which implies the proposition
+/// i.e. `A && B` can be provided by ProvideProp<C> with `C -> A && B`
 pub trait ProvideProp<P: Prop> {}
+
+/// Implementations of this trait prove implications
+pub trait ProveProp<I: Implication> {
+    fn prove(premise: I::Premise) -> I::Conclusion;
+}
 
 /// Allows an artifact to contain a proposition
 pub trait HasProp<F: Prop>: Conjunction {
@@ -19,32 +36,10 @@ pub trait Process {
     fn run(self, input: Self::Requires) -> Self::Provides;
 }
 
-pub use crate::define_atomic_prop;
+// pub use crate::define_atomic_prop;
 pub use crate::take;
 #[allow(unused_imports)]
 pub use rose_architecture_macros::{define_conjunction, define_disjunction, propose};
-
-#[macro_export]
-macro_rules! define_atomic_prop {
-    (
-        $(#[$doc:meta])*
-        $prop:ident $(,)?
-    ) => {
-        $(#[$doc])*
-        #[derive(Clone, Copy)]
-        pub struct $prop {
-            _private: (),
-        }
-
-        impl $crate::framework::Prop for $prop {}
-
-        impl $prop {
-            pub(crate) fn new<P: $crate::framework::ProvideProp<Self>>(_provider: &P) -> Self {
-                Self { _private: () }
-            }
-        }
-    };
-}
 
 #[macro_export]
 macro_rules! take {

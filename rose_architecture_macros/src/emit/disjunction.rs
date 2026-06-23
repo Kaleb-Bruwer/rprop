@@ -1,17 +1,12 @@
 use quote::quote;
-use syn::{Attribute, Ident, Result, Error};
+use syn::{Attribute, Error, Ident, Result};
 
-pub fn emit_disjunction(
-    attrs: &[Attribute],
-    name: &Ident,
-    variants: &[Ident],
-) -> Result<proc_macro2::TokenStream> {
+pub fn emit_disjunction(attrs: &[Attribute], name: &Ident, variants: &[Ident]) -> Result<proc_macro2::TokenStream> {
     if variants.len() < 2 {
-        return Err(Error::new_spanned(
-            name,
-            "disjunction requires at least two variants",
-        ));
+        return Err(Error::new_spanned(name, "disjunction requires at least two variants"));
     }
+
+    let default_variant = &variants[0];
 
     Ok(quote! {
         #(#attrs)*
@@ -30,5 +25,12 @@ pub fn emit_disjunction(
                 }
             }
         )*
+
+        // This should not be a long term solution
+        impl crate::framework::Sorry for #name {
+            fn sorry() -> Self {
+                Self::#default_variant(<#default_variant as crate::framework::Sorry>::sorry())
+            }
+        }
     })
 }

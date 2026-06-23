@@ -34,23 +34,15 @@ fn expr_tokenstream(input: ProposeInput, named: &NamedExpr) -> Result<Vec<TokenS
         match node {
             NamedExpr::And { name, children } => {
                 let members: Vec<_> = children.iter().map(|c| c.name()).collect();
-                let attrs = if *name == input.name {
-                    input.attrs.clone()
-                } else {
-                    Vec::new()
-                };
+                let attrs = if *name == input.name { input.attrs.clone() } else { Vec::new() };
                 emitted.push(emit_conjunction(&attrs, name, &members)?);
             }
             NamedExpr::Or { name, children } => {
                 let variants: Vec<_> = children.iter().map(|c| c.name()).collect();
-                let attrs = if *name == input.name {
-                    input.attrs.clone()
-                } else {
-                    Vec::new()
-                };
+                let attrs = if *name == input.name { input.attrs.clone() } else { Vec::new() };
                 emitted.push(emit_disjunction(&attrs, name, &variants)?);
             }
-            _ => {},
+            _ => {}
         }
     }
 

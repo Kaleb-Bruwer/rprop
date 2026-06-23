@@ -7,8 +7,7 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use syn::{
     parse::{Parse, ParseStream},
-    parse_macro_input,
-    Attribute, Ident, Result, Token,
+    parse_macro_input, Attribute, Ident, Result, Token,
 };
 
 use ast::ProposeInput;
@@ -43,9 +42,7 @@ impl Parse for BracketPropList {
 }
 
 fn error_tokens(message: impl AsRef<str>, span: Span) -> TokenStream {
-    syn::Error::new(span, message.as_ref())
-        .to_compile_error()
-        .into()
+    syn::Error::new(span, message.as_ref()).to_compile_error().into()
 }
 
 #[proc_macro]
@@ -68,10 +65,7 @@ pub fn define_conjunction(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as BracketPropList);
 
     if input.props.is_empty() {
-        return error_tokens(
-            "define_conjunction requires at least one proposition",
-            input.name.span(),
-        );
+        return error_tokens("define_conjunction requires at least one proposition", input.name.span());
     }
 
     match emit_conjunction(&input.attrs, &input.name, &input.props) {
@@ -85,10 +79,7 @@ pub fn define_disjunction(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as BracketPropList);
 
     if input.props.len() < 2 {
-        return error_tokens(
-            "define_disjunction requires at least two propositions",
-            input.name.span(),
-        );
+        return error_tokens("define_disjunction requires at least two propositions", input.name.span());
     }
 
     match emit_disjunction(&input.attrs, &input.name, &input.props) {
@@ -127,8 +118,7 @@ mod integration {
 
     #[test]
     fn parse_assign_input() {
-        let input: ProposeInput = parse_str("StructCanon = NoNumberedFields || NumberedFieldsRenamed")
-            .unwrap();
+        let input: ProposeInput = parse_str("StructCanon = NoNumberedFields || NumberedFieldsRenamed").unwrap();
         assert_eq!(input.name.to_string(), "StructCanon");
         assert!(matches!(input.expr, Some(PropExpr::Or(_))));
     }

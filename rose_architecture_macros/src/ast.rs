@@ -12,8 +12,8 @@ pub enum PropExpr {
 #[derive(Debug, Clone)]
 pub enum NamedExpr {
     Atom(Ident),
-    And{name: Ident, children: Vec<Box<NamedExpr>>},
-    Or{name: Ident, children: Vec<Box<NamedExpr>>},
+    And { name: Ident, children: Vec<Box<NamedExpr>> },
+    Or { name: Ident, children: Vec<Box<NamedExpr>> },
 }
 
 #[derive(Clone)]
@@ -49,30 +49,17 @@ impl PropExpr {
         match self {
             PropExpr::Atom(ident) => Ok(NamedExpr::Atom(ident)),
             PropExpr::And(children) => {
-                let named_children: Result<Vec<Box<NamedExpr>>> = children
-                    .into_iter()
-                    .map(|c| c.into_named(factory).map(Box::new))
-                    .collect();
-                Ok(NamedExpr::And {
-                    name: factory.next(),
-                    children: named_children?,
-                })
+                let named_children: Result<Vec<Box<NamedExpr>>> =
+                    children.into_iter().map(|c| c.into_named(factory).map(Box::new)).collect();
+                Ok(NamedExpr::And { name: factory.next(), children: named_children? })
             }
             PropExpr::Or(children) => {
                 if children.len() < 2 {
-                    return Err(Error::new_spanned(
-                        &factory.base,
-                        "disjunction requires at least two operands",
-                    ));
+                    return Err(Error::new_spanned(&factory.base, "disjunction requires at least two operands"));
                 }
-                let named_children: Result<Vec<Box<NamedExpr>>> = children
-                    .into_iter()
-                    .map(|c| c.into_named(factory).map(Box::new))
-                    .collect();
-                Ok(NamedExpr::Or {
-                    name: factory.next(),
-                    children: named_children?,
-                })
+                let named_children: Result<Vec<Box<NamedExpr>>> =
+                    children.into_iter().map(|c| c.into_named(factory).map(Box::new)).collect();
+                Ok(NamedExpr::Or { name: factory.next(), children: named_children? })
             }
         }
     }

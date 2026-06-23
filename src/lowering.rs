@@ -20,7 +20,7 @@ impl Process for GetAST {
     type Provides = SourceAST;
 
     fn run(self, _input: ()) -> SourceAST {
-        SourceAST::new(ValidSourceProgram::new::<Self>(&self), FieldOrder::new::<Self>(&self))
+        SourceAST::new(ValidSourceProgram::provide::<Self>(&self), FieldOrder::provide::<Self>(&self))
     }
 }
 
@@ -38,10 +38,10 @@ impl Process for KirBuilder {
 
     fn run(self, input: SourceAST) -> Kir1 {
         Kir1::new(
-            SingleExit::new::<Self>(&self),
-            InternalPureSignatures::new::<Self>(&self),
+            SingleExit::provide::<Self>(&self),
+            InternalPureSignatures::provide::<Self>(&self),
             take!(input, FieldOrder),
-            ResolvedSubstitutions::new::<Self>(&self),
+            ResolvedSubstitutions::provide::<Self>(&self),
         )
     }
 }
@@ -58,7 +58,7 @@ impl Process for PropagateExtern {
     fn run(self, input: Kir1) -> Kir1_2S1 {
         Kir1_2S1::new(
             take!(input, SingleExit),
-            PureSignatures::new(take!(input, InternalPureSignatures), ExternStateInSignatures::new::<Self>(&self)),
+            PureSignatures::new(take!(input, InternalPureSignatures), ExternStateInSignatures::provide::<Self>(&self)),
             take!(input, FieldOrder),
             take!(input, ResolvedSubstitutions),
         )

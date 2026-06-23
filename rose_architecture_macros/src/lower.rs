@@ -30,41 +30,23 @@ pub fn lower_propose(input: ProposeInput) -> Result<NamedExpr> {
     }
 }
 
-fn name_expr(
-    expr: PropExpr,
-    user_name: Ident,
-    factory: &mut NameFactory,
-) -> Result<NamedExpr> {
+fn name_expr(expr: PropExpr, user_name: Ident, factory: &mut NameFactory) -> Result<NamedExpr> {
     match expr {
-        PropExpr::Atom(ident) => Ok(NamedExpr::And {
-            name: user_name,
-            children: vec![Box::new(NamedExpr::Atom(ident))],
-        }),
+        PropExpr::Atom(ident) => {
+            Ok(NamedExpr::And { name: user_name, children: vec![Box::new(NamedExpr::Atom(ident))] })
+        }
         PropExpr::And(children) => {
-            let named_children: Result<Vec<Box<NamedExpr>>> = children
-                .into_iter()
-                .map(|c| c.into_named(factory).map(Box::new))
-                .collect();
-            Ok(NamedExpr::And {
-                name: user_name,
-                children: named_children?,
-            })
+            let named_children: Result<Vec<Box<NamedExpr>>> =
+                children.into_iter().map(|c| c.into_named(factory).map(Box::new)).collect();
+            Ok(NamedExpr::And { name: user_name, children: named_children? })
         }
         PropExpr::Or(children) => {
             if children.len() < 2 {
-                return Err(Error::new_spanned(
-                    &factory.base,
-                    "disjunction requires at least two operands",
-                ));
+                return Err(Error::new_spanned(&factory.base, "disjunction requires at least two operands"));
             }
-            let named_children: Result<Vec<Box<NamedExpr>>> = children
-                .into_iter()
-                .map(|c| c.into_named(factory).map(Box::new))
-                .collect();
-            Ok(NamedExpr::Or {
-                name: user_name,
-                children: named_children?,
-            })
+            let named_children: Result<Vec<Box<NamedExpr>>> =
+                children.into_iter().map(|c| c.into_named(factory).map(Box::new)).collect();
+            Ok(NamedExpr::Or { name: user_name, children: named_children? })
         }
     }
 }
