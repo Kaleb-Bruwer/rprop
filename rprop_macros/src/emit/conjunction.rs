@@ -4,8 +4,6 @@ use heck::ToSnakeCase;
 use quote::{format_ident, quote};
 use syn::{Attribute, Error, Ident, Result};
 
-use crate::ast::ProposeKind;
-
 pub struct ConjunctionMember {
     pub ty: Ident,
     pub field: Ident,
@@ -39,12 +37,7 @@ pub fn resolve_conjunction_members(members: &[Ident]) -> Result<Vec<ConjunctionM
     Ok(resolved)
 }
 
-pub fn emit_conjunction(
-    attrs: &[Attribute],
-    name: &Ident,
-    members: &[Ident],
-    kind: ProposeKind,
-) -> Result<proc_macro2::TokenStream> {
+pub fn emit_conjunction(attrs: &[Attribute], name: &Ident, members: &[Ident]) -> Result<proc_macro2::TokenStream> {
     if members.is_empty() {
         return Err(Error::new_spanned(name, "conjunction requires at least one member"));
     }
@@ -68,12 +61,6 @@ pub fn emit_conjunction(
                 Self {
                     #( #member_fields, )*
                 }
-            }
-        }
-
-        impl ::rprop::Sorry for #name {
-            fn sorry() -> Self {
-                Self { #( #member_fields: <#member_tys as ::rprop::Sorry>::sorry(), )* }
             }
         }
 

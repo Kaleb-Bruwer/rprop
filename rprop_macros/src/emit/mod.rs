@@ -12,42 +12,41 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Result;
 
-use crate::ast::{NamedExpr, ProposeInput, ProposeKind};
+use crate::ast::{NamedExpr, ProposeInput};
 
-pub fn emit_propose(input: ProposeInput, named: &NamedExpr, kind: ProposeKind) -> Result<proc_macro2::TokenStream> {
+pub fn emit_propose(input: ProposeInput, named: &NamedExpr) -> Result<proc_macro2::TokenStream> {
     let mut emitted = Vec::new();
     if input.expr.is_none() {
-        emitted.push(emit_atomic(&input.attrs, &input.name, kind));
+        emitted.push(emit_atomic(&input.attrs, &input.name));
     } else {
-        emitted = expr_tokenstream(input, named, kind)?;
+        emitted = expr_tokenstream(input, named)?;
     }
 
     Ok(quote! { #(#emitted)* })
 }
 
 /// Only call for non-atomic propositions, i.e. expressions with a rhs
-fn expr_tokenstream(input: ProposeInput, named: &NamedExpr, kind: ProposeKind) -> Result<Vec<TokenStream>> {
+fn expr_tokenstream(input: ProposeInput, named: &NamedExpr) -> Result<Vec<TokenStream>> {
     let mut nodes = Vec::new();
     named.collect_postorder(&mut nodes);
 
     let mut emitted = Vec::new();
     for node in nodes {
         let is_root = node.name() == input.name;
-        let node_kind = if is_root { kind } else { ProposeKind::Claim };
         match node {
             NamedExpr::And { name, children } => {
                 let members: Vec<_> = children.iter().map(|c| c.name()).collect();
                 let attrs = if is_root { input.attrs.clone() } else { Vec::new() };
-                emitted.push(emit_conjunction(&attrs, name, &members, node_kind)?);
+                emitted.push(emit_conjunction(&attrs, name, &members)?);
             }
             NamedExpr::Or { name, children } => {
                 let variants: Vec<_> = children.iter().map(|c| c.name()).collect();
                 let attrs = if is_root { input.attrs.clone() } else { Vec::new() };
-                emitted.push(emit_disjunction(&attrs, name, &variants, node_kind)?);
+                emitted.push(emit_disjunction(&attrs, name, &variants)?);
             }
             NamedExpr::Imply { name, premise, conclusion } => {
                 let attrs = if is_root { input.attrs.clone() } else { Vec::new() };
-                emitted.push(emit_implication(&attrs, name, premise, conclusion, node_kind));
+                emitted.push(emit_implication(&attrs, name, premise, conclusion));
             }
             NamedExpr::Atom(_) => {}
         }

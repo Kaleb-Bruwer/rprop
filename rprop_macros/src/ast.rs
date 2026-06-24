@@ -18,12 +18,6 @@ pub enum NamedExpr {
     Imply { name: Ident, premise: Box<NamedExpr>, conclusion: Box<NamedExpr> },
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum ProposeKind {
-    Proposition,
-    Claim,
-}
-
 #[derive(Clone)]
 pub struct ProposeInput {
     pub attrs: Vec<syn::Attribute>,

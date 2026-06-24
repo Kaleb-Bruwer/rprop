@@ -10,7 +10,7 @@ use syn::{
     parse_macro_input, Attribute, Ident, Result, Token,
 };
 
-use ast::{ProposeInput, ProposeKind};
+use ast::ProposeInput;
 use emit::{emit_conjunction, emit_disjunction, emit_propose};
 use lower::lower_propose;
 
@@ -45,7 +45,7 @@ fn error_tokens(message: impl AsRef<str>, span: Span) -> TokenStream {
     syn::Error::new(span, message.as_ref()).to_compile_error().into()
 }
 
-fn emit_propose_macro(input: TokenStream, kind: ProposeKind) -> TokenStream {
+fn emit_propose_macro(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ProposeInput);
 
     let named = match lower_propose(input.clone()) {
@@ -53,7 +53,7 @@ fn emit_propose_macro(input: TokenStream, kind: ProposeKind) -> TokenStream {
         Err(e) => return e.to_compile_error().into(),
     };
 
-    match emit_propose(input, &named, kind) {
+    match emit_propose(input, &named) {
         Ok(tokens) => tokens.into(),
         Err(e) => e.to_compile_error().into(),
     }
@@ -61,12 +61,12 @@ fn emit_propose_macro(input: TokenStream, kind: ProposeKind) -> TokenStream {
 
 #[proc_macro]
 pub fn propose(input: TokenStream) -> TokenStream {
-    emit_propose_macro(input, ProposeKind::Proposition)
+    emit_propose_macro(input)
 }
 
 #[proc_macro]
 pub fn claim(input: TokenStream) -> TokenStream {
-    emit_propose_macro(input, ProposeKind::Claim)
+    emit_propose_macro(input)
 }
 
 #[proc_macro]
@@ -77,7 +77,7 @@ pub fn define_conjunction(input: TokenStream) -> TokenStream {
         return error_tokens("define_conjunction requires at least one proposition", input.name.span());
     }
 
-    match emit_conjunction(&input.attrs, &input.name, &input.props, ProposeKind::Proposition) {
+    match emit_conjunction(&input.attrs, &input.name, &input.props) {
         Ok(tokens) => tokens.into(),
         Err(e) => e.to_compile_error().into(),
     }
@@ -91,7 +91,7 @@ pub fn define_disjunction(input: TokenStream) -> TokenStream {
         return error_tokens("define_disjunction requires at least two propositions", input.name.span());
     }
 
-    match emit_disjunction(&input.attrs, &input.name, &input.props, ProposeKind::Proposition) {
+    match emit_disjunction(&input.attrs, &input.name, &input.props) {
         Ok(tokens) => tokens.into(),
         Err(e) => e.to_compile_error().into(),
     }
@@ -119,37 +119,10 @@ mod integration {
             ])),
         };
         let named = lower_propose(input.clone()).unwrap();
-        let tokens = emit_propose(input, &named, ProposeKind::Proposition).unwrap();
+        let tokens = emit_propose(input, &named).unwrap();
         let rendered = tokens.to_string();
         assert!(rendered.contains("struct PureSignatures"));
         assert!(rendered.contains("enum PureSignatures_0"));
-    }
-
-    #[test]
-    fn emit_implication_claim_omits_provide() {
-        let input = ProposeInput {
-            attrs: vec![],
-            name: format_ident!("Optimality"),
-            expr: Some(PropExpr::Imply(
-                Box::new(PropExpr::Atom(format_ident!("Kir1"))),
-                Box::new(PropExpr::Atom(format_ident!("MinimalKir"))),
-            )),
-        };
-        let named = lower_propose(input.clone()).unwrap();
-        let tokens = emit_propose(input, &named, ProposeKind::Claim).unwrap();
-        let rendered = tokens.to_string();
-        assert!(rendered.contains("type Optimality"));
-        assert!(!rendered.contains("provide"));
-    }
-
-    #[test]
-    fn claim_atomic_omits_provide() {
-        let input = ProposeInput { attrs: vec![], name: format_ident!("Unproven"), expr: None };
-        let named = lower_propose(input.clone()).unwrap();
-        let tokens = emit_propose(input, &named, ProposeKind::Claim).unwrap();
-        let rendered = tokens.to_string();
-        assert!(rendered.contains("struct Unproven"));
-        assert!(!rendered.contains("provide"));
     }
 
     #[test]
