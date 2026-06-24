@@ -22,8 +22,8 @@ pub fn emit_disjunction(
             #( #variants(#variants) ),*
         }
 
-        impl crate::framework::Prop for #name {}
-        impl crate::framework::Disjunction for #name {}
+        impl ::rprop::Prop for #name {}
+        impl ::rprop::Disjunction for #name {}
 
         #(
             impl From<#variants> for #name {
@@ -34,9 +34,9 @@ pub fn emit_disjunction(
         )*
 
         // This should not be a long term solution
-        impl crate::framework::Sorry for #name {
+        impl ::rprop::Sorry for #name {
             fn sorry() -> Self {
-                Self::#default_variant(<#default_variant as crate::framework::Sorry>::sorry())
+                Self::#default_variant(<#default_variant as ::rprop::Sorry>::sorry())
             }
         }
     })

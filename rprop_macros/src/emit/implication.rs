@@ -15,10 +15,9 @@ pub fn emit_implication(
 
     quote! {
         #(#attrs)*
-        // pub type #name = crate::framework::Implies<#premise_ty, #conclusion_ty>;
         pub type #name = fn(#premise_ty) -> #conclusion_ty;
 
-        // impl crate::framework::Sorry for #name {
+        // impl ::rprop::Sorry for #name {
         //     fn sorry() -> Self {
         //         |_premise: #premise_ty| #conclusion_ty::sorry()
         //     }

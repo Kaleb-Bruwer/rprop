@@ -11,9 +11,9 @@ pub fn emit_atomic(attrs: &[Attribute], name: &Ident, kind: ProposeKind) -> proc
             _private: (),
         }
 
-        impl crate::framework::Prop for #name {}
+        impl ::rprop::Prop for #name {}
 
-        impl crate::framework::Sorry for #name {
+        impl ::rprop::Sorry for #name {
             fn sorry() -> Self {
                 Self { _private: () }
             }

@@ -60,8 +60,8 @@ pub fn emit_conjunction(
             #( pub #member_fields: #member_tys, )*
         }
 
-        impl crate::framework::Prop for #name {}
-        impl crate::framework::Conjunction for #name {}
+        impl ::rprop::Prop for #name {}
+        impl ::rprop::Conjunction for #name {}
 
         impl #name {
             pub fn new(#( #member_fields: #member_tys ),*) -> Self {
@@ -71,14 +71,14 @@ pub fn emit_conjunction(
             }
         }
 
-        impl crate::framework::Sorry for #name {
+        impl ::rprop::Sorry for #name {
             fn sorry() -> Self {
-                Self { #( #member_fields: <#member_tys as crate::framework::Sorry>::sorry(), )* }
+                Self { #( #member_fields: <#member_tys as ::rprop::Sorry>::sorry(), )* }
             }
         }
 
         #(
-            impl crate::framework::HasProp<#member_tys> for #name {
+            impl ::rprop::HasProp<#member_tys> for #name {
                 fn prop(&self) -> #member_tys {
                     self.#member_fields
                 }

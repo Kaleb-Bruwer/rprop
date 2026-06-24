@@ -1,11 +1,8 @@
-use rprop_macros::{claim, propose};
+use rprop::{claim, propose, Process, ProvideProp, take};
 
-use crate::{
-    lib::{Process, ProvideProp, take},
-    props::{
-        ExternStateInSignatures, FieldOrder, InternalPureSignatures, NumberedFieldsRenamed, PureSignatures,
-        ResolvedSubstitutions, SingleExit, StructCanon, ValidSourceProgram,
-    },
+use crate::props::{
+    ExternStateInSignatures, FieldOrder, InternalPureSignatures, NumberedFieldsRenamed, PureSignatures,
+    ResolvedSubstitutions, SingleExit, StructCanon, ValidSourceProgram,
 };
 
 pub struct GetAST;
