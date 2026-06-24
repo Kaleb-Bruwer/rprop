@@ -1,7 +1,3 @@
-[package]
-name = "rprop"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-rprop_macros = { path = "rprop_macros" }
+[workspace]
+members = ["rprop", "rprop_macros"]
+resolver = "2"
