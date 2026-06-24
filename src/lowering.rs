@@ -1,4 +1,4 @@
-use rose_architecture_macros::{claim, propose};
+use rprop_macros::{claim, propose};
 
 use crate::{
     framework::{Process, ProvideProp, take},

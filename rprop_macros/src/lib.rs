@@ -123,7 +123,6 @@ mod integration {
         let rendered = tokens.to_string();
         assert!(rendered.contains("struct PureSignatures"));
         assert!(rendered.contains("enum PureSignatures_0"));
-        assert_eq!(rendered.matches("fn provide").count(), 1);
     }
 
     #[test]

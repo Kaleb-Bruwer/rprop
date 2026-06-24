@@ -1,3 +1,3 @@
-# Rose Architecture
+# RProp
 
-This repository will be used to build a formal model of the rose architecture, to reliably keep track of assumptions and assurances between artifacts and processing stages.
+This library allows users to model propositional logic in rust, using structures enums and functions to represend conjunctions, disjunctions and implications respectively. The intent is to allow formal reasoning, validated by Rust's type system, in a medium that's already familiar to developers.

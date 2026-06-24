@@ -1,7 +1,7 @@
 [package]
-name = "rose_architecture"
+name = "rprop"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-rose_architecture_macros = { path = "rose_architecture_macros" }
+rprop_macros = { path = "rprop_macros" }

@@ -42,7 +42,7 @@ pub trait Process {
 // pub use crate::define_atomic_prop;
 pub use crate::take;
 #[allow(unused_imports)]
-pub use rose_architecture_macros::{claim, define_conjunction, define_disjunction, propose};
+pub use rprop_macros::{claim, define_conjunction, define_disjunction, propose};
 
 #[macro_export]
 macro_rules! take {
