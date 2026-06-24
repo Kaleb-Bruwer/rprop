@@ -1,6 +1,7 @@
 [package]
 name = "rprop"
 version = "0.1.0"
+authors = ["Kaleb Bruwer <kaleb@karoocompute.com>"]
 edition = "2024"
 
 [dependencies]

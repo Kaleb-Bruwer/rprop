@@ -39,14 +39,12 @@ pub trait Process {
     fn run(self, input: Self::Requires) -> Self::Provides;
 }
 
-// pub use crate::define_atomic_prop;
-pub use crate::take;
 #[allow(unused_imports)]
 pub use rprop_macros::{claim, define_conjunction, define_disjunction, propose};
 
 #[macro_export]
 macro_rules! take {
     ($set:expr, $prop:ident) => {
-        $crate::framework::HasProp::<$prop>::prop(&$set)
+        $crate::HasProp::<$prop>::prop(&$set)
     };
 }

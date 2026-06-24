@@ -1,4 +1,4 @@
-use crate::framework::propose;
+use crate::lib::propose;
 
 propose!(
     /// The given program is well formed in its language

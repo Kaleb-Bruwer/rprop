@@ -1,7 +1,7 @@
 use rprop_macros::{claim, propose};
 
 use crate::{
-    framework::{Process, ProvideProp, take},
+    lib::{Process, ProvideProp, take},
     props::{
         ExternStateInSignatures, FieldOrder, InternalPureSignatures, NumberedFieldsRenamed, PureSignatures,
         ResolvedSubstitutions, SingleExit, StructCanon, ValidSourceProgram,
