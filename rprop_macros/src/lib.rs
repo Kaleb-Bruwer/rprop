@@ -127,7 +127,7 @@ mod integration {
         let tokens = emit_propose(input, &named).unwrap();
         let rendered = tokens.to_string();
         assert!(rendered.contains("struct PureSignatures"));
-        assert!(rendered.contains("enum PureSignatures_0"));
+        assert!(rendered.contains("enum PureSignatures0"));
     }
 
     #[test]

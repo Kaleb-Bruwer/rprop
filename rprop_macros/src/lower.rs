@@ -14,7 +14,7 @@ impl NameFactory {
     }
 
     pub fn next(&mut self) -> Ident {
-        let ident = format_ident!("{}_{}", self.base, self.counter);
+        let ident = format_ident!("{}{}", self.base, self.counter);
         self.counter += 1;
         ident
     }
@@ -72,8 +72,8 @@ mod tests {
     #[test]
     fn factory_yields_incrementing_names() {
         let mut factory = NameFactory::new(format_ident!("PureSignatures"));
-        assert_eq!(factory.next().to_string(), "PureSignatures_0");
-        assert_eq!(factory.next().to_string(), "PureSignatures_1");
+        assert_eq!(factory.next().to_string(), "PureSignatures0");
+        assert_eq!(factory.next().to_string(), "PureSignatures1");
     }
 
     #[test]
@@ -94,7 +94,7 @@ mod tests {
         let NamedExpr::Or { name: or_name, .. } = &*children[1] else {
             panic!("expected Or");
         };
-        assert_eq!(or_name.to_string(), "X_0");
+        assert_eq!(or_name.to_string(), "X0");
     }
 
     #[test]

@@ -26,8 +26,8 @@ claim!(AlwaysNeedTeabag = Consumables -> Teabag);
 fn main() {}
 
 // Proof that tea can be made with a teabag, cup, tap water and kettle
-fn tea_from_tap(components: TeaFromTap_0) -> Tea {
-    let TeaFromTap_0 { teabag, cup, tap_water, kettle } = components;
+fn tea_from_tap(components: TeaFromTap0) -> Tea {
+    let TeaFromTap0 { teabag, cup, tap_water, kettle } = components;
 
     let consumables: Consumables = teabag.into();
     let boiled_water = BoiledWater { kettle, has_water: tap_water.into() };
@@ -40,9 +40,9 @@ fn always_need_teabag(consumables: Consumables) -> Teabag {
     match consumables {
         Consumables::Teabag(teabag) => teabag,
         // Syntax alternative for conjunction members
-        Consumables::Consumables_0(consumables_0) => take!(consumables_0, Teabag),
-        Consumables::Consumables_1(Consumables_1 { teabag, .. }) => teabag,
-        Consumables::Consumables_2(Consumables_2 { teabag, .. }) => teabag,
+        Consumables::Consumables0(consumables_0) => take!(consumables_0, Teabag),
+        Consumables::Consumables1(Consumables1 { teabag, .. }) => teabag,
+        Consumables::Consumables2(Consumables2 { teabag, .. }) => teabag,
     }
 }
 

@@ -79,6 +79,8 @@ fn emit_claim_obligation(name: &syn::Ident) -> proc_macro2::TokenStream {
     let obligation_name = format_ident!("__rprop_{}_obligation", name);
 
     quote! {
+        #[doc(hidden)]
+        #[allow(non_camel_case_types)]
         pub trait #trait_name {
             const PROOF: Self;
         }
