@@ -22,11 +22,11 @@ propose!(
 propose!(Tea = Consumables && Cup && BoiledWater);
 
 claim!(TeaFromTap = Teabag && Cup && TapWater && Kettle -> Tea);
-claim!(AlwaysNeedTeabag = Consumables -> Teabag);
+claim!(AlwaysNeedTeabag = Tea -> Teabag);
 
 fn main() {}
 
-// Proof that tea can be made with a teabag, cup, tap water and kettle
+/// Proof that tea can be made with a teabag, cup, tap water and kettle
 #[prove(TeaFromTap)]
 fn tea_from_tap(components: TeaFromTap0) -> Tea {
     let TeaFromTap0 { teabag, cup, tap_water, kettle } = components;
@@ -39,7 +39,9 @@ fn tea_from_tap(components: TeaFromTap0) -> Tea {
 
 /// Prove by case analysis that each combination of consumables requires a teabag
 #[prove(AlwaysNeedTeabag)]
-fn always_need_teabag(consumables: Consumables) -> Teabag {
+fn always_need_teabag(tea: Tea) -> Teabag {
+    let consumables = take!(tea, Consumables);
+
     match consumables {
         Consumables::Teabag(teabag) => teabag,
         // Syntax alternative for conjunction members
