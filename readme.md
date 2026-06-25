@@ -1,3 +1,78 @@
 # RProp
 
-This library allows users to model propositional logic in rust, using structures enums and functions to represend conjunctions, disjunctions and implications respectively. The intent is to allow formal reasoning, validated by Rust's type system, in a medium that's already familiar to developers.
+This library provides propositional logic in rust, allowing users to use formal reasoning to model systems in a familiar language and environment.
+
+```toml
+[dependencies]
+rprop = "0.1"
+```
+
+## Overview
+
+Logic is built up from atomic propositions, bound together by three logical operations: conjunctions ```&&```, disjunctions ```||``` and implications ```->```, which we model as ```structs```, ```enums``` and ```functions``` respectively. We allow the user to define propositions, claims and proofs. Claims are implications that require proof, a compile time error will be raised otherwise. Proofs are written as functions, using the same signature as the corresponding claim. The proof function must be annotated with ```prove(ClaimName)``` to be recognized.
+
+Proofs are done by construction. All the propositions have private constructors, so they can't be introduced from nothing. For any given proof function, the only assumptions it has are its inputs, and any other proven implication (function) that is within scope. Beyond that, propositions can only be constructed by following the logic they were proposed with. A conjunction requires all its members (hence a struct), and a disjunction only one (hence an enum).
+
+## Example
+
+In this example wer are declaring propositions to model a kettle that boils water. ```Water``` is defined as being either ```TapWater``` or ```BottledWater```. We then claim that if we can boil ```Water```, we can also boil ```TapWater```, giving us the ```BoilTapWater``` implication. We need to prove our claim, which is why we have the ```boil_tap_water``` function, annotated with ```prove(BoilTapWater)```.
+
+
+The claim is proved by construction. Note that the proof function must have the same signature as the corresponding claim, which, as an implication, is really a type alias for a function signature. A proof is satisfied if we manage to get the return type correct. Since we cannot construct propositions directly, this forces us to use logic to reason from the inputs.
+
+```rust
+use rprop::{claim, propose, prove};
+
+propose!(TapWater);
+propose!(BottledWater);
+propose!(Water = TapWater || BottledWater);
+propose!(BoilingWater);
+
+propose!(Kettle);
+
+propose!(BoilWater = Water && Kettle -> BoilingWater);
+
+claim!(BoilTapWater = TapWater && Kettle && BoilWater -> BoilingWater);
+
+#[prove(BoilTapWater)]
+pub fn boil_tap_water(tap_water: TapWater, kettle: Kettle, boil: BoilWater) -> BoilingWater {
+    let water: Water = tap_water.into();
+    (boil)(water, kettle)
+}
+
+```
+
+More examples can be found [here](rprop/examples/).
+
+## Core concepts
+
+### Propositions
+
+<table>
+<tr><th>Proposition</th><th>Purpose</th><th>Example</th></tr>
+
+<tr><td>Atomic</td><td>Simplest piece of information</td><td>propose!(A)</td></tr>
+<tr><td>Conjunction</td><td>A conjunction is true if all its 1+ components are true</td><td>propose!(A = B && C && D)</td></tr>
+<tr><td>Disjunction</td><td>A disjunction is true if any of its 2+ components are true</td><td>propose!(A = B || C)</td></tr>
+<tr><td>Implication</td><td>If we have the lhs, we get the rhs</td><td>propose!(A = B -> C)</td></tr>
+</table>
+
+A proposition may use nested logic, in which case intermediate declarations will be made to represent nested terms. This should be done with caution, as you will not control the names given to such nested terms.
+```rust
+propose!(A = B && (C || D) -> E || F)
+```
+
+**Note:** An implication only provides a function signature, not an implementation. If you wish to use an unproven implication in another proof, it has to be one of the inputs (i.e. it has to be an explicit assumption). The ```BoilWater``` implication in the earlier example demonstrates this concept.
+
+## Remaining work
+
+This is an early version of RProp. There are several known opportunities for improvement, which are explained in the open issues.
+
+## License
+
+Licensed under either of
+
+ * Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+ * MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+at your option.

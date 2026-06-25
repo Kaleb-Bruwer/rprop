@@ -3,6 +3,8 @@ name = "rprop"
 version = "0.1.0"
 authors = ["Kaleb Bruwer <kaleb@karoocompute.com>"]
 edition = "2024"
+license = "MIT OR Apache-2.0"
+readme = "../readme.md"
 
 [dependencies]
 rprop_macros = { path = "../rprop_macros" }
