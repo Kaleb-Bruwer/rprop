@@ -11,7 +11,7 @@ pub use implication::emit_implication;
 pub use proof::emit_proof_binding;
 
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 use syn::{Error, Result};
 
 use crate::{

@@ -5,12 +5,12 @@ pub trait Conjunction: Prop {}
 pub trait Disjunction: Prop {}
 
 /// Alternate syntax for accesing the components of a conjunction
-pub trait HasProp<F: Prop>: Conjunction {
+pub trait HasProp<F>: Conjunction {
     fn prop(&self) -> F;
 }
 
 #[allow(unused_imports)]
-pub use rprop_macros::{claim, define_conjunction, define_disjunction, propose};
+pub use rprop_macros::{claim, define_conjunction, define_disjunction, propose, prove};
 
 #[macro_export]
 macro_rules! take {

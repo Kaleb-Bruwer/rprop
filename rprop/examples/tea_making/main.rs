@@ -1,5 +1,4 @@
-use rprop::{claim, propose, take};
-use rprop_macros::prove;
+use rprop::{claim, propose, prove, take};
 
 propose!(TapWater);
 propose!(BottledWater);
