@@ -1,5 +1,8 @@
 # RProp
 
+[![Build](https://github.com/Kaleb-Bruwer/rprop/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/Kaleb-Bruwer/rprop/actions/workflows/build.yml)
+[![Test](https://github.com/Kaleb-Bruwer/rprop/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/Kaleb-Bruwer/rprop/actions/workflows/test.yml)
+
 This library provides propositional logic in rust, allowing users to use formal reasoning to model systems in a familiar language and environment.
 
 ```toml
