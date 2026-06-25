@@ -30,11 +30,11 @@ dependencies = [
 name = "rprop"
 version = "0.1.0"
 dependencies = [
- "rprop_macros",
+ "rprop_derive",
 ]
 
 [[package]]
-name = "rprop_macros"
+name = "rprop_derive"
 version = "0.1.0"
 dependencies = [
  "heck",

@@ -9,4 +9,4 @@ readme = "../readme.md"
 repository = "https://github.com/Kaleb-Bruwer/rprop"
 
 [dependencies]
-rprop_macros = { path = "../rprop_macros", version = "0.1.0" }
+rprop_derive = { path = "../rprop_derive", version = "0.1.0" }

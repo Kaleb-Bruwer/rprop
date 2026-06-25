@@ -10,7 +10,7 @@ pub trait HasProp<F>: Conjunction {
 }
 
 #[allow(unused_imports)]
-pub use rprop_macros::{claim, define_conjunction, define_disjunction, propose, prove};
+pub use rprop_derive::{claim, define_conjunction, define_disjunction, propose, prove};
 
 #[macro_export]
 macro_rules! take {

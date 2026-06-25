@@ -1,5 +1,5 @@
 [package]
-name = "rprop_macros"
+name = "rprop_derive"
 version = "0.1.0"
 authors = ["Kaleb Bruwer <kaleb@karoocompute.com>"]
 description = "Procedural macros for RProp"
