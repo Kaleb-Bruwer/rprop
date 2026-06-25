@@ -1,4 +1,5 @@
 use rprop::{claim, propose, take};
+use rprop_macros::prove;
 
 propose!(TapWater);
 propose!(BottledWater);
@@ -26,6 +27,7 @@ claim!(AlwaysNeedTeabag = Consumables -> Teabag);
 fn main() {}
 
 // Proof that tea can be made with a teabag, cup, tap water and kettle
+#[prove(TeaFromTap)]
 fn tea_from_tap(components: TeaFromTap0) -> Tea {
     let TeaFromTap0 { teabag, cup, tap_water, kettle } = components;
 
@@ -36,6 +38,7 @@ fn tea_from_tap(components: TeaFromTap0) -> Tea {
 }
 
 /// Prove by case analysis that each combination of consumables requires a teabag
+#[prove(AlwaysNeedTeabag)]
 fn always_need_teabag(consumables: Consumables) -> Teabag {
     match consumables {
         Consumables::Teabag(teabag) => teabag,
@@ -44,12 +47,4 @@ fn always_need_teabag(consumables: Consumables) -> Teabag {
         Consumables::Consumables1(Consumables1 { teabag, .. }) => teabag,
         Consumables::Consumables2(Consumables2 { teabag, .. }) => teabag,
     }
-}
-
-impl __rprop_TeaFromTap_proof for TeaFromTap {
-    const PROOF: Self = tea_from_tap;
-}
-
-impl __rprop_AlwaysNeedTeabag_proof for AlwaysNeedTeabag {
-    const PROOF: Self = always_need_teabag;
 }

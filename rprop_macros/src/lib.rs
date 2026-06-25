@@ -5,6 +5,7 @@ mod parse;
 
 use proc_macro::TokenStream;
 use proc_macro2::Span;
+use quote::quote;
 use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, Attribute, Ident, Result, Token,
@@ -13,6 +14,8 @@ use syn::{
 use ast::ProposeInput;
 use emit::{emit_claim, emit_conjunction, emit_disjunction, emit_propose};
 use lower::lower_propose;
+
+use crate::emit::emit_proof_binding;
 
 struct BracketPropList {
     attrs: Vec<Attribute>,
@@ -72,6 +75,20 @@ pub fn claim(input: TokenStream) -> TokenStream {
         Ok(tokens) => tokens.into(),
         Err(e) => e.to_compile_error().into(),
     }
+}
+
+#[proc_macro_attribute]
+pub fn prove(args: TokenStream, input: TokenStream) -> TokenStream {
+    let claim = parse_macro_input!(args as syn::Ident);
+    let func = parse_macro_input!(input as syn::ItemFn);
+
+    let binding = emit_proof_binding(&claim, &func.sig.ident);
+
+    quote! {
+        #func
+        #binding
+    }
+    .into()
 }
 
 #[proc_macro]

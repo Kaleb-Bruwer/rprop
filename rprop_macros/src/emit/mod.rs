@@ -2,17 +2,22 @@ mod atomic;
 mod conjunction;
 mod disjunction;
 mod implication;
+mod proof;
 
 pub use atomic::emit_atomic;
 pub use conjunction::emit_conjunction;
 pub use disjunction::emit_disjunction;
 pub use implication::emit_implication;
+pub use proof::emit_proof_binding;
 
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Error, Result};
 
-use crate::ast::{NamedExpr, PropExpr, ProposeInput};
+use crate::{
+    ast::{NamedExpr, PropExpr, ProposeInput},
+    emit::proof::emit_claim_obligation,
+};
 
 pub fn emit_propose(input: ProposeInput, named: &NamedExpr) -> Result<proc_macro2::TokenStream> {
     let mut emitted = Vec::new();
@@ -72,21 +77,4 @@ pub fn emit_claim(input: ProposeInput) -> Result<proc_macro2::TokenStream> {
         #proposition
         #obligation
     })
-}
-
-fn emit_claim_obligation(name: &syn::Ident) -> proc_macro2::TokenStream {
-    let trait_name = format_ident!("__rprop_{}_proof", name);
-    let obligation_name = format_ident!("__rprop_{}_obligation", name);
-
-    quote! {
-        #[doc(hidden)]
-        #[allow(non_camel_case_types)]
-        pub trait #trait_name {
-            const PROOF: Self;
-        }
-
-        #[doc(hidden)]
-        #[allow(non_upper_case_globals)]
-        const #obligation_name: #name = <#name as #trait_name>::PROOF;
-    }
 }
