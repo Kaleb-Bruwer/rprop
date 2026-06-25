@@ -9,10 +9,10 @@ pub use disjunction::emit_disjunction;
 pub use implication::emit_implication;
 
 use proc_macro2::TokenStream;
-use quote::quote;
-use syn::Result;
+use quote::{format_ident, quote};
+use syn::{Error, Result};
 
-use crate::ast::{NamedExpr, ProposeInput};
+use crate::ast::{NamedExpr, PropExpr, ProposeInput};
 
 pub fn emit_propose(input: ProposeInput, named: &NamedExpr) -> Result<proc_macro2::TokenStream> {
     let mut emitted = Vec::new();
@@ -53,4 +53,38 @@ fn expr_tokenstream(input: ProposeInput, named: &NamedExpr) -> Result<Vec<TokenS
     }
 
     Ok(emitted)
+}
+
+pub fn emit_claim(input: ProposeInput) -> Result<proc_macro2::TokenStream> {
+    let Some(expr) = &input.expr else {
+        return Err(Error::new_spanned(&input.name, "claim requires an implication (`Premise -> Conclusion`)"));
+    };
+
+    if !matches!(expr, PropExpr::Imply(_, _)) {
+        return Err(Error::new_spanned(&input.name, "claim requires an implication (`Premise -> Conclusion`)"));
+    }
+
+    let named = crate::lower::lower_propose(input.clone())?;
+    let proposition = emit_propose(input.clone(), &named)?;
+    let obligation = emit_claim_obligation(&input.name);
+
+    Ok(quote! {
+        #proposition
+        #obligation
+    })
+}
+
+fn emit_claim_obligation(name: &syn::Ident) -> proc_macro2::TokenStream {
+    let trait_name = format_ident!("__rprop_{}_proof", name);
+    let obligation_name = format_ident!("__rprop_{}_obligation", name);
+
+    quote! {
+        pub trait #trait_name {
+            const PROOF: Self;
+        }
+
+        #[doc(hidden)]
+        #[allow(non_upper_case_globals)]
+        const #obligation_name: #name = <#name as #trait_name>::PROOF;
+    }
 }

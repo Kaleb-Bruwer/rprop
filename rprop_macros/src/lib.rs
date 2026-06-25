@@ -11,7 +11,7 @@ use syn::{
 };
 
 use ast::ProposeInput;
-use emit::{emit_conjunction, emit_disjunction, emit_propose};
+use emit::{emit_claim, emit_conjunction, emit_disjunction, emit_propose};
 use lower::lower_propose;
 
 struct BracketPropList {
@@ -66,7 +66,12 @@ pub fn propose(input: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn claim(input: TokenStream) -> TokenStream {
-    emit_propose_macro(input)
+    let input = parse_macro_input!(input as ProposeInput);
+
+    match emit_claim(input) {
+        Ok(tokens) => tokens.into(),
+        Err(e) => e.to_compile_error().into(),
+    }
 }
 
 #[proc_macro]
@@ -137,5 +142,22 @@ mod integration {
         let input: ProposeInput = parse_str("Renamed = FieldOrder -> NumberedFieldsRenamed").unwrap();
         assert_eq!(input.name.to_string(), "Renamed");
         assert!(matches!(input.expr, Some(PropExpr::Imply(_, _))));
+    }
+
+    #[test]
+    fn claim_emits_obligation() {
+        let input: ProposeInput = parse_str("TeaFromTap = A && B -> Tea").unwrap();
+        let tokens = emit_claim(input).unwrap();
+        let rendered = tokens.to_string();
+        assert!(rendered.contains("struct TeaFromTap"));
+        assert!(rendered.contains("__rprop_TeaFromTap_obligation"));
+        assert!(rendered.contains("__rprop_TeaFromTap_proof"));
+    }
+
+    #[test]
+    fn claim_rejects_non_implication() {
+        let input: ProposeInput = parse_str("NotAClaim = A && B").unwrap();
+        let err = emit_claim(input).unwrap_err();
+        assert!(err.to_string().contains("implication"));
     }
 }

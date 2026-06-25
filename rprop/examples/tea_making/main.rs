@@ -23,13 +23,7 @@ propose!(Tea = Consumables && Cup && BoiledWater);
 claim!(TeaFromTap = Teabag && Cup && TapWater && Kettle -> Tea);
 claim!(AlwaysNeedTeabag = Consumables -> Teabag);
 
-fn main() {
-    let _ = TEA_FROM_TAP;
-    let _ = ALWAYS_NEED_TEABAG;
-}
-
-const TEA_FROM_TAP: TeaFromTap = tea_from_tap;
-const ALWAYS_NEED_TEABAG: AlwaysNeedTeabag = always_need_teabag;
+fn main() {}
 
 // Proof that tea can be made with a teabag, cup, tap water and kettle
 fn tea_from_tap(components: TeaFromTap_0) -> Tea {
@@ -50,4 +44,12 @@ fn always_need_teabag(consumables: Consumables) -> Teabag {
         Consumables::Consumables_1(Consumables_1 { teabag, .. }) => teabag,
         Consumables::Consumables_2(Consumables_2 { teabag, .. }) => teabag,
     }
+}
+
+impl __rprop_TeaFromTap_proof for TeaFromTap {
+    const PROOF: Self = tea_from_tap;
+}
+
+impl __rprop_AlwaysNeedTeabag_proof for AlwaysNeedTeabag {
+    const PROOF: Self = always_need_teabag;
 }
