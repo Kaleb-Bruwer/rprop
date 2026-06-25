@@ -166,9 +166,60 @@ mod integration {
         let input: ProposeInput = parse_str("TeaFromTap = A && B -> Tea").unwrap();
         let tokens = emit_claim(input).unwrap();
         let rendered = tokens.to_string();
-        assert!(rendered.contains("struct TeaFromTap"));
+        assert!(!rendered.contains("struct TeaFromTap0"));
+        assert!(rendered.contains("type TeaFromTap = fn"));
+        assert!(rendered.contains("a : A"));
+        assert!(rendered.contains("b : B"));
+        assert!(rendered.contains("-> Tea"));
         assert!(rendered.contains("__rprop_TeaFromTap_obligation"));
         assert!(rendered.contains("__rprop_TeaFromTap_proof"));
+    }
+
+    #[test]
+    fn implication_flattens_conjunction_premise_and_conclusion() {
+        let input: ProposeInput = parse_str("Both = A && B -> C && D").unwrap();
+        let named = lower_propose(input.clone()).unwrap();
+        let tokens = emit_propose(input, &named).unwrap();
+        let rendered = tokens.to_string();
+        assert!(!rendered.contains("struct Both0"));
+        assert!(!rendered.contains("struct Both1"));
+        assert!(rendered.contains("type Both = fn"));
+        assert!(rendered.contains("a : A"));
+        assert!(rendered.contains("b : B"));
+        assert!(rendered.contains("-> (C , D)"));
+    }
+
+    #[test]
+    fn nested_implication_flattens_operands() {
+        let input: ProposeInput = parse_str("BoilWaterEnclosed = Water && Heat -> PressurizedSteam").unwrap();
+        let named = lower_propose(input.clone()).unwrap();
+        let tokens = emit_propose(input, &named).unwrap();
+        let rendered = tokens.to_string();
+        assert!(!rendered.contains("struct BoilWaterEnclosed0"));
+        assert!(rendered.contains("type BoilWaterEnclosed = fn"));
+        assert!(rendered.contains("water : Water"));
+        assert!(rendered.contains("heat : Heat"));
+        assert!(rendered.contains("-> PressurizedSteam"));
+    }
+
+    #[test]
+    fn standalone_conjunction_still_emits_struct() {
+        let input: ProposeInput = parse_str("BoiledWater = Kettle && HasWater").unwrap();
+        let named = lower_propose(input.clone()).unwrap();
+        let tokens = emit_propose(input, &named).unwrap();
+        let rendered = tokens.to_string();
+        assert!(rendered.contains("struct BoiledWater"));
+        assert!(rendered.contains("kettle : Kettle"));
+        assert!(rendered.contains("has_water : HasWater"));
+    }
+
+    #[test]
+    fn atomic_implication_unchanged() {
+        let input: ProposeInput = parse_str("Renamed = FieldOrder -> NumberedFieldsRenamed").unwrap();
+        let named = lower_propose(input.clone()).unwrap();
+        let tokens = emit_propose(input, &named).unwrap();
+        let rendered = tokens.to_string();
+        assert!(rendered.contains("type Renamed = fn (field_order : FieldOrder) -> NumberedFieldsRenamed"));
     }
 
     #[test]

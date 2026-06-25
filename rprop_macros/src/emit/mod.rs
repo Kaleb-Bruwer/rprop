@@ -2,6 +2,7 @@ mod atomic;
 mod conjunction;
 mod disjunction;
 mod implication;
+mod members;
 mod proof;
 
 pub use atomic::emit_atomic;
@@ -16,7 +17,7 @@ use syn::{Error, Result};
 
 use crate::{
     ast::{NamedExpr, PropExpr, ProposeInput},
-    emit::proof::emit_claim_obligation,
+    emit::{members::is_implication_and_operand, proof::emit_claim_obligation},
 };
 
 pub fn emit_propose(input: ProposeInput, named: &NamedExpr) -> Result<proc_macro2::TokenStream> {
@@ -40,6 +41,9 @@ fn expr_tokenstream(input: ProposeInput, named: &NamedExpr) -> Result<Vec<TokenS
         let is_root = node.name() == input.name;
         match node {
             NamedExpr::And { name, children } => {
+                if is_implication_and_operand(name, named) {
+                    continue;
+                }
                 let members: Vec<_> = children.iter().map(|c| c.name()).collect();
                 let attrs = if is_root { input.attrs.clone() } else { Vec::new() };
                 emitted.push(emit_conjunction(&attrs, name, &members)?);
@@ -51,7 +55,7 @@ fn expr_tokenstream(input: ProposeInput, named: &NamedExpr) -> Result<Vec<TokenS
             }
             NamedExpr::Imply { name, premise, conclusion } => {
                 let attrs = if is_root { input.attrs.clone() } else { Vec::new() };
-                emitted.push(emit_implication(&attrs, name, premise, conclusion));
+                emitted.push(emit_implication(&attrs, name, premise, conclusion)?);
             }
             NamedExpr::Atom(_) => {}
         }

@@ -27,9 +27,7 @@ fn main() {}
 
 /// Proof that tea can be made with a teabag, cup, tap water and kettle
 #[prove(TeaFromTap)]
-fn tea_from_tap(components: TeaFromTap0) -> Tea {
-    let TeaFromTap0 { teabag, cup, tap_water, kettle } = components;
-
+fn tea_from_tap(teabag: Teabag, cup: Cup, tap_water: TapWater, kettle: Kettle) -> Tea {
     let consumables: Consumables = teabag.into();
     let boiled_water = BoiledWater { kettle, has_water: tap_water.into() };
 

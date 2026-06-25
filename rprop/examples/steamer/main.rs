@@ -4,7 +4,7 @@ use crate::{
     components::{Boiler, Condenser, Engine},
     consumables::{Fuel, Seawater},
     physics::{Energy, Water},
-    stages::{BoilerStage0, EngineStage0, EngineStage1, boiler_stage, engine_stage},
+    stages::{boiler_stage, engine_stage},
 };
 
 pub mod components;
@@ -20,16 +20,11 @@ propose!(PrimedSteamer = Steamer && Water && Seawater);
 claim!(SteamPower = PrimedSteamer && Fuel -> Energy);
 
 #[prove(SteamPower)]
-fn steam_power(inputs: SteamPower0) -> Energy {
-    let SteamPower0 { primed_steamer, fuel } = inputs;
-
+fn steam_power(primed_steamer: PrimedSteamer, fuel: Fuel) -> Energy {
     let PrimedSteamer { steamer: Steamer { boiler, engine, .. }, water, .. } = primed_steamer;
 
-    let boiler_input = BoilerStage0 { boiler, fuel, water };
-    let pressurized_steam = boiler_stage(boiler_input);
-
-    let engine_input = EngineStage0 { engine, pressurized_steam };
-    let EngineStage1 { energy, .. } = engine_stage(engine_input);
+    let pressurized_steam = boiler_stage(boiler, fuel, water);
+    let (_, energy) = engine_stage(engine, pressurized_steam);
 
     energy
 }
