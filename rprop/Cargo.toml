@@ -2,10 +2,11 @@
 name = "rprop"
 version = "0.1.0"
 authors = ["Kaleb Bruwer <kaleb@karoocompute.com>"]
+description = "Propositional logic in Rust"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 readme = "../readme.md"
 repository = "https://github.com/Kaleb-Bruwer/rprop"
 
 [dependencies]
-rprop_macros = { path = "../rprop_macros" }
+rprop_macros = { path = "../rprop_macros", version = "0.1.0" }

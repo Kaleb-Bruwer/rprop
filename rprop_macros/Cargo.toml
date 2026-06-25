@@ -2,6 +2,7 @@
 name = "rprop_macros"
 version = "0.1.0"
 authors = ["Kaleb Bruwer <kaleb@karoocompute.com>"]
+description = "Procedural macros for RProp"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Kaleb-Bruwer/rprop"

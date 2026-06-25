@@ -1,3 +1,7 @@
 [workspace]
 members = ["rprop", "rprop_macros"]
 resolver = "2"
+
+[patch.crates-io]
+rprop = { path = "rprop" }
+rprop_macros = { path = "rprop_macros" }
