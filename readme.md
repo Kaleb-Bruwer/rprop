@@ -4,7 +4,7 @@ This library provides propositional logic in Rust, allowing users to use formal 
 
 ```toml
 [dependencies]
-rprop = "0.1"
+rprop = "0.2"
 ```
 
 ## Overview
