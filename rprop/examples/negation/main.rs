@@ -3,7 +3,7 @@ use rprop::{claim, propose, prove, Absurd};
 fn main() {}
 
 propose!(Hot);
-propose!(Cold = !Hot); //Cold = Hot -> Absurd
+propose!(Cold = !Hot); // Cold = Hot -> Absurd
 
 claim!(OnlyHotOrCold = Hot && Cold -> Absurd);
 
