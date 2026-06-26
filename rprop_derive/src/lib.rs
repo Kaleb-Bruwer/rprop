@@ -2,6 +2,7 @@ mod ast;
 mod emit;
 mod lower;
 mod parse;
+mod keywords;
 
 use proc_macro::TokenStream;
 use proc_macro2::Span;
@@ -227,5 +228,39 @@ mod integration {
         let input: ProposeInput = parse_str("NotAClaim = A && B").unwrap();
         let err = emit_claim(input).unwrap_err();
         assert!(err.to_string().contains("implication"));
+    }
+
+    #[test]
+    fn negation_emits_implication_to_absurd() {
+        let input: ProposeInput = parse_str("NotHot = !Hot").unwrap();
+        let named = lower_propose(input.clone()).unwrap();
+        let tokens = emit_propose(input, &named).unwrap();
+        let rendered = tokens.to_string();
+        assert!(rendered.contains("type NotHot = fn"));
+        assert!(rendered.contains("hot : Hot"));
+        assert!(rendered.contains(":: rprop :: Absurd"));
+    }
+
+    #[test]
+    fn double_negation_emits_nested_implication() {
+        let input: ProposeInput = parse_str("NotNotHot = !!Hot").unwrap();
+        let named = lower_propose(input.clone()).unwrap();
+        let tokens = emit_propose(input, &named).unwrap();
+        let rendered = tokens.to_string();
+        assert!(rendered.contains("type NotNotHot0 = fn"));
+        assert!(rendered.contains("hot : Hot"));
+        assert!(rendered.contains(":: rprop :: Absurd"));
+        assert!(rendered.contains("type NotNotHot = fn"));
+        assert!(rendered.contains("not_not_hot0 : NotNotHot0"));
+    }
+
+    #[test]
+    fn contradiction_with_negation_in_premise() {
+        let input: ProposeInput = parse_str("Contradiction = Hot && !Hot -> Absurd").unwrap();
+        let tokens = emit_claim(input).unwrap();
+        let rendered = tokens.to_string();
+        assert!(rendered.contains("type Contradiction = fn"));
+        assert!(rendered.contains("hot : Hot"));
+        assert!(rendered.contains(":: rprop :: Absurd"));
     }
 }

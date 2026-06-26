@@ -18,3 +18,9 @@ macro_rules! take {
         $crate::HasProp::<$prop>::prop(&$set)
     };
 }
+
+pub enum Absurd {}
+
+pub fn ex_falso<P: Prop>(absurd: Absurd) -> P {
+    match absurd {}
+}

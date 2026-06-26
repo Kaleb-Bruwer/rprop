@@ -1,7 +1,7 @@
 use quote::format_ident;
 use syn::{Error, Ident, Result};
 
-use crate::ast::{NamedExpr, PropExpr, ProposeInput};
+use crate::{ast::{NamedExpr, PropExpr, ProposeInput}, keywords};
 
 pub struct NameFactory {
     pub(crate) base: Ident,
@@ -21,6 +21,10 @@ impl NameFactory {
 }
 
 pub fn lower_propose(input: ProposeInput) -> Result<NamedExpr> {
+    if keywords::is_keyword(&input.name) {
+        return Err(Error::new_spanned(&input.name, format!("cannot use keyword `{}` as proposition name", input.name)));
+    }
+
     match input.expr {
         None => Ok(NamedExpr::Atom(input.name)),
         Some(expr) => {
@@ -57,6 +61,7 @@ fn name_expr(expr: PropExpr, user_name: Ident, factory: &mut NameFactory) -> Res
                 conclusion: Box::new(conclusion_named),
             })
         }
+        PropExpr::Not(inner) => name_expr(inner.imply_absurd(), user_name, factory),
     }
 }
 

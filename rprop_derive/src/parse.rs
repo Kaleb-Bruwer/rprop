@@ -50,12 +50,21 @@ fn parse_or(input: ParseStream) -> Result<PropExpr> {
 }
 
 fn parse_and(input: ParseStream) -> Result<PropExpr> {
-    let mut nodes = vec![parse_primary(input)?];
+    let mut nodes = vec![parse_unary(input)?];
     while input.peek(Token![&&]) {
         input.parse::<Token![&&]>()?;
-        nodes.push(parse_primary(input)?);
+        nodes.push(parse_unary(input)?);
     }
     flatten_and(nodes)
+}
+
+fn parse_unary(input: ParseStream) -> Result<PropExpr> {
+    if input.peek(Token![!]) {
+        input.parse::<Token![!]>()?;
+        let operand = parse_unary(input)?;
+        return Ok(PropExpr::Not(Box::new(operand)));
+    }
+    parse_primary(input)
 }
 
 fn parse_primary(input: ParseStream) -> Result<PropExpr> {
@@ -171,5 +180,65 @@ mod tests {
         };
         assert!(matches!(&*and[0], PropExpr::Imply(_, _)));
         assert!(matches!(&*and[1], PropExpr::Atom(_)));
+    }
+
+    #[test]
+    fn parse_negation() {
+        let PropExpr::Not(inner) = parse_only_expr("!A") else {
+            panic!("expected not");
+        };
+        assert!(matches!(&*inner, PropExpr::Atom(_)));
+    }
+
+    #[test]
+    fn parse_double_negation() {
+        let PropExpr::Not(inner) = parse_only_expr("!!A") else {
+            panic!("expected not");
+        };
+        assert!(matches!(&*inner, PropExpr::Not(_)));
+    }
+
+    #[test]
+    fn precedence_not_over_and() {
+        let PropExpr::And(and) = parse_only_expr("!A && B") else {
+            panic!("expected and");
+        };
+        assert!(matches!(&*and[0], PropExpr::Not(_)));
+        assert!(matches!(&*and[1], PropExpr::Atom(_)));
+    }
+
+    #[test]
+    fn precedence_not_over_or() {
+        let PropExpr::Or(or) = parse_only_expr("!A || B") else {
+            panic!("expected or");
+        };
+        assert!(matches!(&*or[0], PropExpr::Not(_)));
+        assert!(matches!(&*or[1], PropExpr::Atom(_)));
+    }
+
+    #[test]
+    fn precedence_not_in_implication_lhs() {
+        let PropExpr::Imply(premise, conclusion) = parse_only_expr("!A -> B") else {
+            panic!("expected imply");
+        };
+        assert!(matches!(&*premise, PropExpr::Not(_)));
+        assert!(matches!(&*conclusion, PropExpr::Atom(_)));
+    }
+
+    #[test]
+    fn precedence_not_in_implication_rhs() {
+        let PropExpr::Imply(premise, conclusion) = parse_only_expr("A -> !B") else {
+            panic!("expected imply");
+        };
+        assert!(matches!(&*premise, PropExpr::Atom(_)));
+        assert!(matches!(&*conclusion, PropExpr::Not(_)));
+    }
+
+    #[test]
+    fn negation_over_parenthesized_or() {
+        let PropExpr::Not(inner) = parse_only_expr("!(A || B)") else {
+            panic!("expected not");
+        };
+        assert!(matches!(&*inner, PropExpr::Or(_)));
     }
 }
