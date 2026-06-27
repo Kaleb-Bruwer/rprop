@@ -18,44 +18,48 @@ use syn::{Error, Result};
 use crate::{
     ast::{NamedExpr, PropExpr, ProposeInput},
     emit::{members::is_implication_and_operand, proof::emit_claim_obligation},
+    generics::GenericContext,
 };
 
 pub fn emit_propose(input: ProposeInput, named: &NamedExpr) -> Result<proc_macro2::TokenStream> {
     let mut emitted = Vec::new();
     if input.expr.is_none() {
-        emitted.push(emit_atomic(&input.attrs, &input.name));
+        let ctx = GenericContext::from_input(&input);
+        emitted.push(emit_atomic(&input.attrs, &input.name, &ctx));
     } else {
-        emitted = expr_tokenstream(input, named)?;
+        emitted = expr_tokenstream(&input, named)?;
     }
 
     Ok(quote! { #(#emitted)* })
 }
 
 /// Only call for non-atomic propositions, i.e. expressions with a rhs
-fn expr_tokenstream(input: ProposeInput, named: &NamedExpr) -> Result<Vec<TokenStream>> {
+fn expr_tokenstream(input: &ProposeInput, named: &NamedExpr) -> Result<Vec<TokenStream>> {
     let mut nodes = Vec::new();
     named.collect_postorder(&mut nodes);
 
     let mut emitted = Vec::new();
     for node in nodes {
         let is_root = node.name() == input.name;
+        let node_ctx = GenericContext::from_binders(node.collect_param_binders());
+
         match node {
             NamedExpr::And { name, children } => {
                 if is_implication_and_operand(name, named) {
                     continue;
                 }
-                let members: Vec<_> = children.iter().map(|c| c.name()).collect();
+                let member_refs: Vec<&NamedExpr> = children.iter().map(|c| c.as_ref()).collect();
                 let attrs = if is_root { input.attrs.clone() } else { Vec::new() };
-                emitted.push(emit_conjunction(&attrs, name, &members)?);
+                emitted.push(emit_conjunction(&attrs, name, &member_refs, &node_ctx)?);
             }
             NamedExpr::Or { name, children } => {
-                let variants: Vec<_> = children.iter().map(|c| c.name()).collect();
+                let variant_refs: Vec<&NamedExpr> = children.iter().map(|c| c.as_ref()).collect();
                 let attrs = if is_root { input.attrs.clone() } else { Vec::new() };
-                emitted.push(emit_disjunction(&attrs, name, &variants)?);
+                emitted.push(emit_disjunction(&attrs, name, &variant_refs, &node_ctx)?);
             }
             NamedExpr::Imply { name, premise, conclusion } => {
                 let attrs = if is_root { input.attrs.clone() } else { Vec::new() };
-                emitted.push(emit_implication(&attrs, name, premise, conclusion)?);
+                emitted.push(emit_implication(&attrs, name, premise, conclusion, &node_ctx)?);
             }
             NamedExpr::Atom(_) => {}
         }
@@ -73,9 +77,10 @@ pub fn emit_claim(input: ProposeInput) -> Result<proc_macro2::TokenStream> {
         return Err(Error::new_spanned(&input.name, "claim requires an implication (`Premise -> Conclusion`)"));
     }
 
+    let ctx = GenericContext::from_input(&input);
     let named = crate::lower::lower_propose(input.clone())?;
     let proposition = emit_propose(input.clone(), &named)?;
-    let obligation = emit_claim_obligation(&input.name);
+    let obligation = emit_claim_obligation(&input.name, &ctx);
 
     Ok(quote! {
         #proposition

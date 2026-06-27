@@ -24,3 +24,5 @@ pub enum Absurd {}
 pub fn ex_falso<P: Prop>(absurd: Absurd) -> P {
     match absurd {}
 }
+
+pub type Nat = u32; // Keep in sync with rprop_derive/src/nat.rs

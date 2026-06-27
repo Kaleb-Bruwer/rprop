@@ -1,11 +1,29 @@
 use quote::format_ident;
 use syn::{Error, Ident, Result};
 
-use crate::{keywords, lower::NameFactory};
+use crate::{keywords, lower::NameFactory, nat::Nat};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NatArg {
+    Lit(Nat),
+    Param(Ident),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Atom {
+    pub name: Ident,
+    pub args: Vec<NatArg>,
+}
+
+impl Atom {
+    pub fn from_name(name: Ident) -> Self {
+        Self { name, args: Vec::new() }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PropExpr {
-    Atom(Ident),
+    Atom(Atom),
     Not(Box<PropExpr>),
     And(Vec<Box<PropExpr>>),
     Or(Vec<Box<PropExpr>>),
@@ -14,7 +32,7 @@ pub enum PropExpr {
 
 #[derive(Debug, Clone)]
 pub enum NamedExpr {
-    Atom(Ident),
+    Atom(Atom),
     And { name: Ident, children: Vec<Box<NamedExpr>> },
     Or { name: Ident, children: Vec<Box<NamedExpr>> },
     Imply { name: Ident, premise: Box<NamedExpr>, conclusion: Box<NamedExpr> },
@@ -24,13 +42,14 @@ pub enum NamedExpr {
 pub struct ProposeInput {
     pub attrs: Vec<syn::Attribute>,
     pub name: Ident,
+    pub binders: Vec<Ident>,
     pub expr: Option<PropExpr>,
 }
 
 impl NamedExpr {
     pub fn name(&self) -> Ident {
         match self {
-            NamedExpr::Atom(ident) => ident.clone(),
+            NamedExpr::Atom(atom) => atom.name.clone(),
             NamedExpr::And { name, .. } | NamedExpr::Or { name, .. } => name.clone(),
             NamedExpr::Imply { name, .. } => name.clone(),
         }
@@ -57,13 +76,13 @@ impl PropExpr {
     pub fn imply_absurd(self) -> PropExpr {
         PropExpr::Imply(
             Box::new(self),
-            Box::new(PropExpr::Atom(format_ident!("{}", keywords::ABSURD))),
+            Box::new(PropExpr::Atom(Atom::from_name(format_ident!("{}", keywords::ABSURD)))),
         )
     }
 
     pub fn into_named(self, factory: &mut NameFactory) -> Result<NamedExpr> {
         match self {
-            PropExpr::Atom(ident) => Ok(NamedExpr::Atom(ident)),
+            PropExpr::Atom(atom) => Ok(NamedExpr::Atom(atom)),
             PropExpr::Not(inner) => (*inner).imply_absurd().into_named(factory),
             PropExpr::And(children) => {
                 let named_children: Result<Vec<Box<NamedExpr>>> =

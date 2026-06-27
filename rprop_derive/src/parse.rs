@@ -3,12 +3,16 @@ use syn::{
     Attribute, Ident, Result, Token,
 };
 
-use crate::ast::{PropExpr, ProposeInput};
+use crate::{
+    ast::{Atom, NatArg, PropExpr, ProposeInput},
+    nat,
+};
 
 impl Parse for ProposeInput {
     fn parse(input: ParseStream) -> Result<Self> {
         let attrs = input.call(Attribute::parse_outer)?;
         let name: Ident = input.parse()?;
+        let binders = parse_binders(input)?;
 
         if input.peek(Token![=]) {
             input.parse::<Token![=]>()?;
@@ -16,14 +20,32 @@ impl Parse for ProposeInput {
             if input.peek(Token![,]) {
                 input.parse::<Token![,]>()?;
             }
-            Ok(ProposeInput { attrs, name, expr: Some(expr) })
+            Ok(ProposeInput { attrs, name, binders, expr: Some(expr) })
         } else {
             if input.peek(Token![,]) {
                 input.parse::<Token![,]>()?;
             }
-            Ok(ProposeInput { attrs, name, expr: None })
+            Ok(ProposeInput { attrs, name, binders, expr: None })
         }
     }
+}
+
+fn parse_binders(input: ParseStream) -> Result<Vec<Ident>> {
+    if !input.peek(Token![<]) {
+        return Ok(Vec::new());
+    }
+
+    input.parse::<Token![<]>()?;
+    let mut binders = Vec::new();
+    while !input.peek(Token![>]) {
+        binders.push(input.parse()?);
+        if input.peek(Token![,]) {
+            input.parse::<Token![,]>()?;
+        }
+    }
+    input.parse::<Token![>]>()?;
+
+    Ok(binders)
 }
 
 fn parse_expr(input: ParseStream) -> Result<PropExpr> {
@@ -74,8 +96,35 @@ fn parse_primary(input: ParseStream) -> Result<PropExpr> {
         return parse_expr(&content);
     }
 
-    let ident: Ident = input.parse()?;
-    Ok(PropExpr::Atom(ident))
+    Ok(PropExpr::Atom(parse_atom(input)?))
+}
+
+fn parse_atom(input: ParseStream) -> Result<Atom> {
+    let name: Ident = input.parse()?;
+    let args = if input.peek(Token![<]) { parse_nat_args(input)? } else { Vec::new() };
+    Ok(Atom { name, args })
+}
+
+fn parse_nat_args(input: ParseStream) -> Result<Vec<NatArg>> {
+    input.parse::<Token![<]>()?;
+    let mut args = Vec::new();
+    while !input.peek(Token![>]) {
+        args.push(parse_nat_arg(input)?);
+        if input.peek(Token![,]) {
+            input.parse::<Token![,]>()?;
+        }
+    }
+    input.parse::<Token![>]>()?;
+    Ok(args)
+}
+
+fn parse_nat_arg(input: ParseStream) -> Result<NatArg> {
+    if input.peek(syn::LitInt) {
+        let lit: syn::LitInt = input.parse()?;
+        Ok(NatArg::Lit(nat::parse_lit(&lit)?))
+    } else {
+        Ok(NatArg::Param(input.parse()?))
+    }
 }
 
 fn flatten_and(nodes: Vec<PropExpr>) -> Result<PropExpr> {
@@ -143,6 +192,33 @@ mod tests {
     fn bare_atomic() {
         let input = parse_input("ValidSourceProgram");
         assert!(input.expr.is_none());
+        assert!(input.binders.is_empty());
+    }
+
+    #[test]
+    fn parse_generic_bare_atomic() {
+        let input = parse_input("At<N>");
+        assert_eq!(input.name.to_string(), "At");
+        assert_eq!(input.binders.len(), 1);
+        assert_eq!(input.binders[0].to_string(), "N");
+    }
+
+    #[test]
+    fn parse_atom_with_literal() {
+        let PropExpr::Atom(atom) = parse_only_expr("At<3>") else {
+            panic!("expected atom");
+        };
+        assert_eq!(atom.name.to_string(), "At");
+        assert!(matches!(atom.args.as_slice(), [NatArg::Lit(3)]));
+    }
+
+    #[test]
+    fn parse_atom_with_param() {
+        let PropExpr::Atom(atom) = parse_only_expr("At<N>") else {
+            panic!("expected atom");
+        };
+        assert_eq!(atom.name.to_string(), "At");
+        assert!(matches!(atom.args.as_slice(), [NatArg::Param(_)]));
     }
 
     #[test]

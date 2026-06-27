@@ -1,7 +1,10 @@
 use quote::format_ident;
 use syn::{Error, Ident, Result};
 
-use crate::{ast::{NamedExpr, PropExpr, ProposeInput}, keywords};
+use crate::{
+    ast::{Atom, NamedExpr, PropExpr, ProposeInput},
+    keywords,
+};
 
 pub struct NameFactory {
     pub(crate) base: Ident,
@@ -22,11 +25,14 @@ impl NameFactory {
 
 pub fn lower_propose(input: ProposeInput) -> Result<NamedExpr> {
     if keywords::is_keyword(&input.name) {
-        return Err(Error::new_spanned(&input.name, format!("cannot use keyword `{}` as proposition name", input.name)));
+        return Err(Error::new_spanned(
+            &input.name,
+            format!("cannot use keyword `{}` as proposition name", input.name),
+        ));
     }
 
     match input.expr {
-        None => Ok(NamedExpr::Atom(input.name)),
+        None => Ok(NamedExpr::Atom(Atom::from_name(input.name))),
         Some(expr) => {
             let mut factory = NameFactory::new(input.name.clone());
             name_expr(expr, input.name, &mut factory)
@@ -36,9 +42,7 @@ pub fn lower_propose(input: ProposeInput) -> Result<NamedExpr> {
 
 fn name_expr(expr: PropExpr, user_name: Ident, factory: &mut NameFactory) -> Result<NamedExpr> {
     match expr {
-        PropExpr::Atom(ident) => {
-            Ok(NamedExpr::And { name: user_name, children: vec![Box::new(NamedExpr::Atom(ident))] })
-        }
+        PropExpr::Atom(atom) => Ok(NamedExpr::And { name: user_name, children: vec![Box::new(NamedExpr::Atom(atom))] }),
         PropExpr::And(children) => {
             let named_children: Result<Vec<Box<NamedExpr>>> =
                 children.into_iter().map(|c| c.into_named(factory).map(Box::new)).collect();
@@ -71,7 +75,7 @@ mod tests {
     use quote::format_ident;
 
     fn atom(name: &str) -> PropExpr {
-        PropExpr::Atom(format_ident!("{}", name))
+        PropExpr::Atom(Atom::from_name(format_ident!("{}", name)))
     }
 
     #[test]
@@ -86,6 +90,7 @@ mod tests {
         let input = ProposeInput {
             attrs: vec![],
             name: format_ident!("X"),
+            binders: vec![],
             expr: Some(PropExpr::And(vec![
                 Box::new(atom("A")),
                 Box::new(PropExpr::Or(vec![Box::new(atom("B")), Box::new(atom("C"))])),
@@ -107,6 +112,7 @@ mod tests {
         let input = ProposeInput {
             attrs: vec![],
             name: format_ident!("Renamed"),
+            binders: vec![],
             expr: Some(PropExpr::Imply(Box::new(atom("FieldOrder")), Box::new(atom("NumberedFieldsRenamed")))),
         };
         let named = lower_propose(input).unwrap();

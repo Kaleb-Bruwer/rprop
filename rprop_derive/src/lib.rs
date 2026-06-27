@@ -1,8 +1,10 @@
 mod ast;
 mod emit;
-mod lower;
-mod parse;
+mod generics;
 mod keywords;
+mod lower;
+mod nat;
+mod parse;
 
 use proc_macro::TokenStream;
 use proc_macro2::Span;
@@ -12,8 +14,9 @@ use syn::{
     parse_macro_input, Attribute, Ident, Result, Token,
 };
 
-use ast::ProposeInput;
+use ast::{NamedExpr, ProposeInput};
 use emit::{emit_claim, emit_conjunction, emit_disjunction, emit_propose};
+use generics::GenericContext;
 use lower::lower_propose;
 
 use crate::emit::emit_proof_binding;
@@ -83,7 +86,7 @@ pub fn prove(args: TokenStream, input: TokenStream) -> TokenStream {
     let claim = parse_macro_input!(args as syn::Ident);
     let func = parse_macro_input!(input as syn::ItemFn);
 
-    let binding = emit_proof_binding(&claim, &func.sig.ident);
+    let binding = emit_proof_binding(&claim, &func);
 
     quote! {
         #func
@@ -100,7 +103,11 @@ pub fn define_conjunction(input: TokenStream) -> TokenStream {
         return error_tokens("define_conjunction requires at least one proposition", input.name.span());
     }
 
-    match emit_conjunction(&input.attrs, &input.name, &input.props) {
+    let members: Vec<NamedExpr> =
+        input.props.iter().map(|p| NamedExpr::Atom(ast::Atom::from_name(p.clone()))).collect();
+    let member_refs: Vec<&NamedExpr> = members.iter().collect();
+
+    match emit_conjunction(&input.attrs, &input.name, &member_refs, &GenericContext { binders: vec![] }) {
         Ok(tokens) => tokens.into(),
         Err(e) => e.to_compile_error().into(),
     }
@@ -114,7 +121,11 @@ pub fn define_disjunction(input: TokenStream) -> TokenStream {
         return error_tokens("define_disjunction requires at least two propositions", input.name.span());
     }
 
-    match emit_disjunction(&input.attrs, &input.name, &input.props) {
+    let variants: Vec<NamedExpr> =
+        input.props.iter().map(|p| NamedExpr::Atom(ast::Atom::from_name(p.clone()))).collect();
+    let variant_refs: Vec<&NamedExpr> = variants.iter().collect();
+
+    match emit_disjunction(&input.attrs, &input.name, &variant_refs, &GenericContext { binders: vec![] }) {
         Ok(tokens) => tokens.into(),
         Err(e) => e.to_compile_error().into(),
     }
@@ -123,22 +134,24 @@ pub fn define_disjunction(input: TokenStream) -> TokenStream {
 #[cfg(test)]
 mod integration {
     use super::*;
-    use ast::PropExpr;
+    use ast::{Atom, PropExpr};
     use lower::lower_propose;
     use quote::format_ident;
     use syn::parse_str;
+
+    fn atom(name: &str) -> PropExpr {
+        PropExpr::Atom(Atom::from_name(format_ident!("{}", name)))
+    }
 
     #[test]
     fn emit_nested_proposition() {
         let input = ProposeInput {
             attrs: vec![],
             name: format_ident!("PureSignatures"),
+            binders: vec![],
             expr: Some(PropExpr::And(vec![
-                Box::new(PropExpr::Atom(format_ident!("InternalPureSignatures"))),
-                Box::new(PropExpr::Or(vec![
-                    Box::new(PropExpr::Atom(format_ident!("A"))),
-                    Box::new(PropExpr::Atom(format_ident!("B"))),
-                ])),
+                Box::new(atom("InternalPureSignatures")),
+                Box::new(PropExpr::Or(vec![Box::new(atom("A")), Box::new(atom("B"))])),
             ])),
         };
         let named = lower_propose(input.clone()).unwrap();
@@ -262,5 +275,72 @@ mod integration {
         assert!(rendered.contains("type Contradiction = fn"));
         assert!(rendered.contains("hot : Hot"));
         assert!(rendered.contains(":: rprop :: Absurd"));
+    }
+
+    #[test]
+    fn parse_generic_propose() {
+        let input: ProposeInput = parse_str("At<N>").unwrap();
+        assert_eq!(input.name.to_string(), "At");
+        assert_eq!(input.binders.len(), 1);
+        assert!(input.expr.is_none());
+    }
+
+    #[test]
+    fn emit_generic_atomic() {
+        let input: ProposeInput = parse_str("At<N>").unwrap();
+        let named = lower_propose(input.clone()).unwrap();
+        let tokens = emit_propose(input, &named).unwrap();
+        let rendered = tokens.to_string();
+        assert!(rendered.contains("struct At"));
+        assert!(rendered.contains("const N :"));
+        assert!(rendered.contains(":: rprop :: Nat"));
+        assert!(!rendered.contains("PhantomData"));
+    }
+
+    #[test]
+    fn emit_generic_conjunction_field_names() {
+        let input: ProposeInput = parse_str("Pair<N, M> = At<N> && At<M>").unwrap();
+        let named = lower_propose(input.clone()).unwrap();
+        let tokens = emit_propose(input, &named).unwrap();
+        let rendered = tokens.to_string();
+        assert!(rendered.contains("at_n : At < N >"));
+        assert!(rendered.contains("at_m : At < M >"));
+    }
+
+    #[test]
+    fn emit_generic_claim() {
+        let input: ProposeInput = parse_str("Refl<N> = At<N> -> Eq<N, N>").unwrap();
+        let tokens = emit_claim(input).unwrap();
+        let rendered = tokens.to_string();
+        assert!(rendered.contains("type Refl"));
+        assert!(rendered.contains("const N :"));
+        assert!(rendered.contains("at : At < N >"));
+        assert!(rendered.contains("__rprop_Refl_proof"));
+        assert!(rendered.contains("__rprop_Refl_obligation"));
+    }
+
+    #[test]
+    fn emit_concrete_nat_literal() {
+        let input: ProposeInput = parse_str("AtThree = At<3>").unwrap();
+        let named = lower_propose(input.clone()).unwrap();
+        let tokens = emit_propose(input, &named).unwrap();
+        let rendered = tokens.to_string();
+        assert!(rendered.contains("at_3 : At < 3 >"));
+    }
+
+    #[test]
+    fn emit_nested_generic_intermediate() {
+        let input: ProposeInput = parse_str("X = A<N> && (B<M> || C<P>)").unwrap();
+        let named = lower_propose(input.clone()).unwrap();
+        let tokens = emit_propose(input, &named).unwrap();
+        let rendered = tokens.to_string();
+        println!("{rendered}");
+        assert!(rendered.contains("enum X0"));
+        assert!(rendered.contains("const M :"));
+        assert!(rendered.contains("const P :"));
+        assert!(rendered.contains("struct X"));
+        assert!(rendered.contains("const N :"));
+        assert!(rendered.contains("a_n : A < N >"));
+        assert!(rendered.contains("x0_m_p : X0"));
     }
 }

@@ -3,19 +3,13 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Ident, Result};
 
-use crate::{
-    ast::NamedExpr,
-    emit::conjunction::resolve_conjunction_members,
-};
+use crate::{ast::NamedExpr, emit::conjunction::resolve_conjunction_members};
 
-pub fn premise_params(premise: &NamedExpr) -> Result<Vec<(Ident, Ident)>> {
+pub fn premise_params(premise: &NamedExpr) -> Result<Vec<(Ident, TokenStream)>> {
     match premise {
         NamedExpr::And { children, .. } => {
-            let members: Vec<Ident> = children.iter().map(|c| c.name()).collect();
-            Ok(resolve_conjunction_members(&members)?
-                .into_iter()
-                .map(|m| (m.field, m.ty))
-                .collect())
+            let members: Vec<&NamedExpr> = children.iter().map(|c| c.as_ref()).collect();
+            Ok(resolve_conjunction_members(&members)?.into_iter().map(|m| (m.field, m.ty)).collect())
         }
         _ => {
             let (name, ty) = single_param(premise);
@@ -27,7 +21,7 @@ pub fn premise_params(premise: &NamedExpr) -> Result<Vec<(Ident, Ident)>> {
 pub fn conclusion_ty(conclusion: &NamedExpr) -> TokenStream {
     match conclusion {
         NamedExpr::And { children, .. } => {
-            let tys: Vec<Ident> = children.iter().map(|c| c.name()).collect();
+            let tys: Vec<TokenStream> = children.iter().map(|c| c.reference_tokens()).collect();
             match tys.len() {
                 0 => unreachable!("conjunction requires at least one member"),
                 1 => {
@@ -37,10 +31,7 @@ pub fn conclusion_ty(conclusion: &NamedExpr) -> TokenStream {
                 _ => quote! { (#(#tys),*) },
             }
         }
-        _ => {
-            let ty = conclusion.name();
-            quote! { #ty }
-        }
+        _ => conclusion.reference_tokens(),
     }
 }
 
@@ -67,8 +58,7 @@ pub fn is_implication_and_operand(and_name: &Ident, root: &NamedExpr) -> bool {
     walk(root, and_name)
 }
 
-fn single_param(expr: &NamedExpr) -> (Ident, Ident) {
-    let ty = expr.name();
-    let name = format_ident!("{}", ty.to_string().to_snake_case(), span = ty.span());
-    (name, ty)
+fn single_param(expr: &NamedExpr) -> (Ident, TokenStream) {
+    let name = format_ident!("{}", expr.name().to_string().to_snake_case(), span = expr.name().span());
+    (name, expr.reference_tokens())
 }
