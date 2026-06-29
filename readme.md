@@ -23,21 +23,21 @@ The claim is proved by construction. Note that the proof function must have the 
 ```rust
 use rprop::{claim, propose, prove};
 
-propose!(TapWater);
+propose!(TapWater); //Atomic proposition
 propose!(BottledWater);
-propose!(Water = TapWater || BottledWater);
+propose!(Water = TapWater || BottledWater); //Disjunction
 propose!(BoilingWater);
 
 propose!(Kettle);
 
-propose!(BoilWater = Water && Kettle -> BoilingWater);
+propose!(BoilWater = Water && Kettle -> BoilingWater); //Conjunction and implication
 
 claim!(BoilTapWater = TapWater && Kettle && BoilWater -> BoilingWater);
 
 #[prove(BoilTapWater)]
 pub fn boil_tap_water(tap_water: TapWater, kettle: Kettle, boil: BoilWater) -> BoilingWater {
-    let water: Water = tap_water.into();
-    (boil)(water, kettle)
+    let water: Water = tap_water.into(); // Disjunctions have From implementations for each variant
+    (boil)(water, kettle) // boil is a function that returns BoilingWater
 }
 
 ```
@@ -78,7 +78,7 @@ claim!(OnlyHotOrCold = Hot && Cold -> Absurd);
 
 #[prove(OnlyHotOrCold)]
 fn only_hot_or_cold(hot: Hot, cold: Cold) -> Absurd {
-    cold(hot)
+    cold(hot) // Negation is a function that produces Absurd if its inverse is provided
 }
 ```
 
