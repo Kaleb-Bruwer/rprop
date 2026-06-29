@@ -1,6 +1,6 @@
 [package]
 name = "rprop"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Kaleb Bruwer <kaleb@karoocompute.com>"]
 description = "Propositional logic in Rust"
 edition = "2021"
@@ -9,4 +9,4 @@ readme = "../readme.md"
 repository = "https://github.com/Kaleb-Bruwer/rprop"
 
 [dependencies]
-rprop_derive = { path = "../rprop_derive", version = "0.2.0" }
+rprop_derive = { path = "../rprop_derive", version = "0.2.1" }
