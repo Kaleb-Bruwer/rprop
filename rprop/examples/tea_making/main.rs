@@ -1,24 +1,17 @@
 use rprop::{claim, propose, prove, take};
 
-propose!(TapWater);
-propose!(BottledWater);
-
-propose!(HasWater = TapWater || BottledWater);
-propose!(Kettle);
-propose!(BoiledWater = Kettle && HasWater);
-
-propose!(Teabag);
-propose!(Cup);
-
-propose!(Sugar);
-propose!(Milk);
+propose!(TapWater; BottledWater; Kettle; Teabag; Cup; Sugar; Milk;);
 
 propose!(
-    ///Represet the combinations of consumables that can be used to make tea
-    Consumables = Teabag || Teabag && Sugar || Teabag && Milk || Teabag && Sugar && Milk
-);
+    /// Allows either kind of water to be used
+    HasWater = TapWater || BottledWater;
+    BoiledWater = Kettle && HasWater;
 
-propose!(Tea = Consumables && Cup && BoiledWater);
+    ///Represet the combinations of consumables that can be used to make tea
+    Consumables = Teabag || Teabag && Sugar || Teabag && Milk || Teabag && Sugar && Milk;
+
+    Tea = Consumables && Cup && BoiledWater;
+);
 
 claim!(TeaFromTap = Teabag && Cup && TapWater && Kettle -> Tea);
 claim!(AlwaysNeedTeabag = Tea -> Teabag);

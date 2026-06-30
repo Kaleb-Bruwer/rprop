@@ -22,6 +22,11 @@ pub enum NamedExpr {
 
 #[derive(Clone)]
 pub struct ProposeInput {
+    pub items: Vec<ProposeItem>,
+}
+
+#[derive(Clone)]
+pub struct ProposeItem {
     pub attrs: Vec<syn::Attribute>,
     pub name: Ident,
     pub expr: Option<PropExpr>,
@@ -55,10 +60,7 @@ impl NamedExpr {
 
 impl PropExpr {
     pub fn imply_absurd(self) -> PropExpr {
-        PropExpr::Imply(
-            Box::new(self),
-            Box::new(PropExpr::Atom(format_ident!("{}", keywords::ABSURD))),
-        )
+        PropExpr::Imply(Box::new(self), Box::new(PropExpr::Atom(format_ident!("{}", keywords::ABSURD))))
     }
 
     pub fn into_named(self, factory: &mut NameFactory) -> Result<NamedExpr> {

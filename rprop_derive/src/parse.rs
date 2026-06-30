@@ -3,25 +3,35 @@ use syn::{
     Attribute, Ident, Result, Token,
 };
 
-use crate::ast::{PropExpr, ProposeInput};
+use crate::ast::{PropExpr, ProposeInput, ProposeItem};
 
 impl Parse for ProposeInput {
     fn parse(input: ParseStream) -> Result<Self> {
+        let mut items = Vec::new();
+        while !input.is_empty() {
+            items.push(input.parse()?);
+            if input.peek(Token![;]) {
+                input.parse::<Token![;]>()?;
+            } else if !input.is_empty() {
+                return Err(syn::Error::new(input.span(), "expected `;` or end of input"));
+            }
+        }
+        Ok(ProposeInput { items })
+    }
+}
+
+impl Parse for ProposeItem {
+    fn parse(input: ParseStream) -> Result<Self> {
+        // Capture doc comment, if there is one
         let attrs = input.call(Attribute::parse_outer)?;
         let name: Ident = input.parse()?;
 
         if input.peek(Token![=]) {
             input.parse::<Token![=]>()?;
             let expr = parse_expr(input)?;
-            if input.peek(Token![,]) {
-                input.parse::<Token![,]>()?;
-            }
-            Ok(ProposeInput { attrs, name, expr: Some(expr) })
+            Ok(ProposeItem { attrs, name, expr: Some(expr) })
         } else {
-            if input.peek(Token![,]) {
-                input.parse::<Token![,]>()?;
-            }
-            Ok(ProposeInput { attrs, name, expr: None })
+            Ok(ProposeItem { attrs, name, expr: None })
         }
     }
 }
@@ -113,12 +123,16 @@ mod tests {
     use super::*;
     use syn::parse_str;
 
+    fn parse_item(s: &str) -> ProposeItem {
+        parse_str(s).expect("parse")
+    }
+
     fn parse_input(s: &str) -> ProposeInput {
         parse_str(s).expect("parse")
     }
 
     fn parse_only_expr(s: &str) -> PropExpr {
-        parse_str::<ProposeInput>(&format!("X = {s}")).expect("parse").expr.expect("expr")
+        parse_str::<ProposeItem>(&format!("X = {s}")).expect("parse").expr.expect("expr")
     }
 
     #[test]
@@ -141,13 +155,13 @@ mod tests {
 
     #[test]
     fn bare_atomic() {
-        let input = parse_input("ValidSourceProgram");
+        let input = parse_item("ValidSourceProgram");
         assert!(input.expr.is_none());
     }
 
     #[test]
     fn named_conjunction() {
-        let input = parse_input("PureSignatures = A && B");
+        let input = parse_item("PureSignatures = A && B");
         assert!(input.expr.is_some());
     }
 
@@ -240,5 +254,30 @@ mod tests {
             panic!("expected not");
         };
         assert!(matches!(&*inner, PropExpr::Or(_)));
+    }
+
+    #[test]
+    fn multiple_items() {
+        let input = parse_input("A; B; C");
+        assert_eq!(input.items.len(), 3);
+        assert_eq!(input.items[0].name.to_string(), "A");
+        assert_eq!(input.items[1].name.to_string(), "B");
+        assert_eq!(input.items[2].name.to_string(), "C");
+    }
+
+    #[test]
+    fn multiple_items_with_final_semicolon() {
+        let input = parse_input("A; B; C;");
+        assert_eq!(input.items.len(), 3);
+        assert_eq!(input.items[0].name.to_string(), "A");
+        assert_eq!(input.items[1].name.to_string(), "B");
+        assert_eq!(input.items[2].name.to_string(), "C");
+    }
+
+    #[test]
+    fn semicolons_required() {
+        let actual: Result<ProposeInput> = syn::parse_str("A B; C");
+
+        assert!(actual.is_err(), "Only the final item may omit the `;`");
     }
 }

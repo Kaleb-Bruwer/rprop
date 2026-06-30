@@ -3,19 +3,13 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Ident, Result};
 
-use crate::{
-    ast::NamedExpr,
-    emit::conjunction::resolve_conjunction_members,
-};
+use crate::{ast::NamedExpr, emit::conjunction::resolve_conjunction_members};
 
 pub fn premise_params(premise: &NamedExpr) -> Result<Vec<(Ident, Ident)>> {
     match premise {
         NamedExpr::And { children, .. } => {
             let members: Vec<Ident> = children.iter().map(|c| c.name()).collect();
-            Ok(resolve_conjunction_members(&members)?
-                .into_iter()
-                .map(|m| (m.field, m.ty))
-                .collect())
+            Ok(resolve_conjunction_members(&members)?.into_iter().map(|m| (m.field, m.ty)).collect())
         }
         _ => {
             let (name, ty) = single_param(premise);

@@ -16,11 +16,11 @@ use quote::quote;
 use syn::{Error, Result};
 
 use crate::{
-    ast::{NamedExpr, PropExpr, ProposeInput},
+    ast::{NamedExpr, PropExpr, ProposeItem},
     emit::{members::is_implication_and_operand, proof::emit_claim_obligation},
 };
 
-pub fn emit_propose(input: ProposeInput, named: &NamedExpr) -> Result<proc_macro2::TokenStream> {
+pub fn emit_propose(input: ProposeItem, named: &NamedExpr) -> Result<proc_macro2::TokenStream> {
     let mut emitted = Vec::new();
     if input.expr.is_none() {
         emitted.push(emit_atomic(&input.attrs, &input.name));
@@ -32,7 +32,7 @@ pub fn emit_propose(input: ProposeInput, named: &NamedExpr) -> Result<proc_macro
 }
 
 /// Only call for non-atomic propositions, i.e. expressions with a rhs
-fn expr_tokenstream(input: ProposeInput, named: &NamedExpr) -> Result<Vec<TokenStream>> {
+fn expr_tokenstream(input: ProposeItem, named: &NamedExpr) -> Result<Vec<TokenStream>> {
     let mut nodes = Vec::new();
     named.collect_postorder(&mut nodes);
 
@@ -64,7 +64,7 @@ fn expr_tokenstream(input: ProposeInput, named: &NamedExpr) -> Result<Vec<TokenS
     Ok(emitted)
 }
 
-pub fn emit_claim(input: ProposeInput) -> Result<proc_macro2::TokenStream> {
+pub fn emit_claim(input: ProposeItem) -> Result<proc_macro2::TokenStream> {
     let Some(expr) = &input.expr else {
         return Err(Error::new_spanned(&input.name, "claim requires an implication (`Premise -> Conclusion`)"));
     };

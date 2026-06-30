@@ -2,7 +2,9 @@ use quote::quote;
 use syn::{Attribute, Ident, Result};
 
 use crate::{
-    ast::NamedExpr, emit::members::{conclusion_ty, premise_params}, keywords,
+    ast::NamedExpr,
+    emit::members::{conclusion_ty, premise_params},
+    keywords,
 };
 
 fn conclusion_return_ty(conclusion: &NamedExpr) -> proc_macro2::TokenStream {

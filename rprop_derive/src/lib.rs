@@ -1,8 +1,8 @@
 mod ast;
 mod emit;
+mod keywords;
 mod lower;
 mod parse;
-mod keywords;
 
 use proc_macro::TokenStream;
 use proc_macro2::Span;
@@ -12,11 +12,11 @@ use syn::{
     parse_macro_input, Attribute, Ident, Result, Token,
 };
 
-use ast::ProposeInput;
+use ast::ProposeItem;
 use emit::{emit_claim, emit_conjunction, emit_disjunction, emit_propose};
 use lower::lower_propose;
 
-use crate::emit::emit_proof_binding;
+use crate::{ast::ProposeInput, emit::emit_proof_binding};
 
 struct BracketPropList {
     attrs: Vec<Attribute>,
@@ -52,15 +52,20 @@ fn error_tokens(message: impl AsRef<str>, span: Span) -> TokenStream {
 fn emit_propose_macro(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ProposeInput);
 
-    let named = match lower_propose(input.clone()) {
-        Ok(n) => n,
-        Err(e) => return e.to_compile_error().into(),
-    };
+    let mut emitted = Vec::new();
+    for item in input.items {
+        let named = match lower_propose(item.clone()) {
+            Ok(n) => n,
+            Err(e) => return e.to_compile_error().into(),
+        };
 
-    match emit_propose(input, &named) {
-        Ok(tokens) => tokens.into(),
-        Err(e) => e.to_compile_error().into(),
+        match emit_propose(item, &named) {
+            Ok(tokens) => emitted.push(tokens),
+            Err(e) => return e.to_compile_error().into(),
+        }
     }
+
+    quote! { #(#emitted)* }.into()
 }
 
 #[proc_macro]
@@ -70,7 +75,7 @@ pub fn propose(input: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn claim(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as ProposeInput);
+    let input = parse_macro_input!(input as ProposeItem);
 
     match emit_claim(input) {
         Ok(tokens) => tokens.into(),
@@ -130,7 +135,7 @@ mod integration {
 
     #[test]
     fn emit_nested_proposition() {
-        let input = ProposeInput {
+        let input = ProposeItem {
             attrs: vec![],
             name: format_ident!("PureSignatures"),
             expr: Some(PropExpr::And(vec![
@@ -150,21 +155,21 @@ mod integration {
 
     #[test]
     fn parse_assign_input() {
-        let input: ProposeInput = parse_str("StructCanon = NoNumberedFields || NumberedFieldsRenamed").unwrap();
+        let input: ProposeItem = parse_str("StructCanon = NoNumberedFields || NumberedFieldsRenamed").unwrap();
         assert_eq!(input.name.to_string(), "StructCanon");
         assert!(matches!(input.expr, Some(PropExpr::Or(_))));
     }
 
     #[test]
     fn parse_implication_input() {
-        let input: ProposeInput = parse_str("Renamed = FieldOrder -> NumberedFieldsRenamed").unwrap();
+        let input: ProposeItem = parse_str("Renamed = FieldOrder -> NumberedFieldsRenamed").unwrap();
         assert_eq!(input.name.to_string(), "Renamed");
         assert!(matches!(input.expr, Some(PropExpr::Imply(_, _))));
     }
 
     #[test]
     fn claim_emits_obligation() {
-        let input: ProposeInput = parse_str("TeaFromTap = A && B -> Tea").unwrap();
+        let input: ProposeItem = parse_str("TeaFromTap = A && B -> Tea").unwrap();
         let tokens = emit_claim(input).unwrap();
         let rendered = tokens.to_string();
         assert!(!rendered.contains("struct TeaFromTap0"));
@@ -178,7 +183,7 @@ mod integration {
 
     #[test]
     fn implication_flattens_conjunction_premise_and_conclusion() {
-        let input: ProposeInput = parse_str("Both = A && B -> C && D").unwrap();
+        let input: ProposeItem = parse_str("Both = A && B -> C && D").unwrap();
         let named = lower_propose(input.clone()).unwrap();
         let tokens = emit_propose(input, &named).unwrap();
         let rendered = tokens.to_string();
@@ -192,7 +197,7 @@ mod integration {
 
     #[test]
     fn nested_implication_flattens_operands() {
-        let input: ProposeInput = parse_str("BoilWaterEnclosed = Water && Heat -> PressurizedSteam").unwrap();
+        let input: ProposeItem = parse_str("BoilWaterEnclosed = Water && Heat -> PressurizedSteam").unwrap();
         let named = lower_propose(input.clone()).unwrap();
         let tokens = emit_propose(input, &named).unwrap();
         let rendered = tokens.to_string();
@@ -205,7 +210,7 @@ mod integration {
 
     #[test]
     fn standalone_conjunction_still_emits_struct() {
-        let input: ProposeInput = parse_str("BoiledWater = Kettle && HasWater").unwrap();
+        let input: ProposeItem = parse_str("BoiledWater = Kettle && HasWater").unwrap();
         let named = lower_propose(input.clone()).unwrap();
         let tokens = emit_propose(input, &named).unwrap();
         let rendered = tokens.to_string();
@@ -216,7 +221,7 @@ mod integration {
 
     #[test]
     fn atomic_implication_unchanged() {
-        let input: ProposeInput = parse_str("Renamed = FieldOrder -> NumberedFieldsRenamed").unwrap();
+        let input: ProposeItem = parse_str("Renamed = FieldOrder -> NumberedFieldsRenamed").unwrap();
         let named = lower_propose(input.clone()).unwrap();
         let tokens = emit_propose(input, &named).unwrap();
         let rendered = tokens.to_string();
@@ -225,14 +230,14 @@ mod integration {
 
     #[test]
     fn claim_rejects_non_implication() {
-        let input: ProposeInput = parse_str("NotAClaim = A && B").unwrap();
+        let input: ProposeItem = parse_str("NotAClaim = A && B").unwrap();
         let err = emit_claim(input).unwrap_err();
         assert!(err.to_string().contains("implication"));
     }
 
     #[test]
     fn negation_emits_implication_to_absurd() {
-        let input: ProposeInput = parse_str("NotHot = !Hot").unwrap();
+        let input: ProposeItem = parse_str("NotHot = !Hot").unwrap();
         let named = lower_propose(input.clone()).unwrap();
         let tokens = emit_propose(input, &named).unwrap();
         let rendered = tokens.to_string();
@@ -243,7 +248,7 @@ mod integration {
 
     #[test]
     fn double_negation_emits_nested_implication() {
-        let input: ProposeInput = parse_str("NotNotHot = !!Hot").unwrap();
+        let input: ProposeItem = parse_str("NotNotHot = !!Hot").unwrap();
         let named = lower_propose(input.clone()).unwrap();
         let tokens = emit_propose(input, &named).unwrap();
         let rendered = tokens.to_string();
@@ -256,7 +261,7 @@ mod integration {
 
     #[test]
     fn contradiction_with_negation_in_premise() {
-        let input: ProposeInput = parse_str("Contradiction = Hot && !Hot -> Absurd").unwrap();
+        let input: ProposeItem = parse_str("Contradiction = Hot && !Hot -> Absurd").unwrap();
         let tokens = emit_claim(input).unwrap();
         let rendered = tokens.to_string();
         assert!(rendered.contains("type Contradiction = fn"));

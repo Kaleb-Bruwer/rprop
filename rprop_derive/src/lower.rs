@@ -1,7 +1,10 @@
 use quote::format_ident;
 use syn::{Error, Ident, Result};
 
-use crate::{ast::{NamedExpr, PropExpr, ProposeInput}, keywords};
+use crate::{
+    ast::{NamedExpr, PropExpr, ProposeItem},
+    keywords,
+};
 
 pub struct NameFactory {
     pub(crate) base: Ident,
@@ -20,9 +23,12 @@ impl NameFactory {
     }
 }
 
-pub fn lower_propose(input: ProposeInput) -> Result<NamedExpr> {
+pub fn lower_propose(input: ProposeItem) -> Result<NamedExpr> {
     if keywords::is_keyword(&input.name) {
-        return Err(Error::new_spanned(&input.name, format!("cannot use keyword `{}` as proposition name", input.name)));
+        return Err(Error::new_spanned(
+            &input.name,
+            format!("cannot use keyword `{}` as proposition name", input.name),
+        ));
     }
 
     match input.expr {
@@ -83,7 +89,7 @@ mod tests {
 
     #[test]
     fn nested_or_gets_factory_name() {
-        let input = ProposeInput {
+        let input = ProposeItem {
             attrs: vec![],
             name: format_ident!("X"),
             expr: Some(PropExpr::And(vec![
@@ -104,7 +110,7 @@ mod tests {
 
     #[test]
     fn top_level_implication() {
-        let input = ProposeInput {
+        let input = ProposeItem {
             attrs: vec![],
             name: format_ident!("Renamed"),
             expr: Some(PropExpr::Imply(Box::new(atom("FieldOrder")), Box::new(atom("NumberedFieldsRenamed")))),
